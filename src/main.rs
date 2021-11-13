@@ -40,21 +40,22 @@ struct MyVisitor {}
 
 impl Visit for MyVisitor {
     fn visit_call_expr(&mut self, n: &CallExpr, _parent: &dyn Node) {
-        use swc_ecma_visit::swc_ecma_ast::{
-            Expr::*, ExprOrSpread, ExprOrSuper::*, Ident, Lit::Str,
-        };
+        use swc_ecma_visit::swc_ecma_ast::{Expr::*, ExprOrSuper::*, Lit::Str};
         println!("#############");
 
         if let Expr(e) = &n.callee {
-            let boo = *e.clone();
-            if let Ident(d) = boo {
-                println!("CALL: {:?}", d.sym.to_string());
+            let unboxed = *e.clone();
+
+            let caller_name = unboxed.ident().and_then(|i| Some(i.sym.to_string()));
+
+            if let Some(name) = caller_name {
+                println!("CALL: {:?}", name);
             }
         }
 
-        let arg = n.args.get(0).and_then(|a| (*a.expr.clone()).lit());
+        let arg = n.args.get(0).and_then(|a| Some(*a.expr.clone()));
 
-        if let Some(Str(hmm)) = arg {
+        if let Some(Lit(Str(hmm))) = arg {
             println!("ARG: {:?}", hmm.value.to_string());
         }
     }

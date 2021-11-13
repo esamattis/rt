@@ -1,0 +1,12 @@
+{
+  "name": "rt2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js"
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "vaara": 234
+  },
+  "author": "",
+  "license": "ISC"
+}

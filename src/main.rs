@@ -1,42 +1,17 @@
 use std::error::Error;
 use std::path::Path;
-use std::{fs, io::ErrorKind};
 use swc_common::sync::Lrc;
 use swc_common::{FileName, SourceMap};
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
 use swc_ecma_visit::Node;
 use swc_ecma_visit::Visit;
 
-use serde_json::Value;
 use swc_ecma_visit::swc_ecma_ast::{CallExpr, Module};
 
-fn read_npm_scripts() -> Result<Vec<String>, std::io::Error> {
-    let maybe_content = fs::read_to_string("package.json");
-    let mut script_names: Vec<String> = Vec::new();
-
-    match maybe_content {
-        Ok(content) => {
-            let json: Value = serde_json::from_str(&content)?;
-            let maybe_scripts = json["scripts"].as_object();
-            if let Some(scripts) = maybe_scripts {
-                for (key, value) in scripts.iter() {
-                    if let Value::String(_) = value {
-                        script_names.push(key.to_string());
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            if ErrorKind::NotFound == e.kind() {
-                return Ok(script_names);
-            }
-
-            return Err(e);
-        }
-    }
-
-    return Ok(script_names);
-}
+mod npm;
+mod runner;
+use npm::NpmRunner;
+use runner::Runner;
 
 struct TaskVisitor {
     tasks: Vec<String>,
@@ -116,9 +91,15 @@ fn parse_as_swc_module(path: &str) -> Result<Module, String> {
 }
 
 fn hmm() -> Result<(), String> {
-    let module = parse_as_swc_module("jakefile.js")?;
-    let tasks = TaskVisitor::tasks_from_module(&module);
-    println!("tasks: {:?}", tasks);
+    // let module = parse_as_swc_module("jakefile.js")?;
+    // let tasks = TaskVisitor::tasks_from_module(&module);
+    // println!("tasks: {:?}", tasks);
+
+    let mut npm = NpmRunner::new();
+    npm.load()?;
+
+    println!("{:?}", npm.tasks());
+
     return Ok(());
 }
 

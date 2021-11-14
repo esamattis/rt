@@ -43,20 +43,35 @@ impl Visit for MyVisitor {
         use swc_ecma_visit::swc_ecma_ast::{Expr::*, ExprOrSuper::*, Lit::Str};
         println!("#############");
 
+        println!("type id: {:?}", _parent.type_id());
+
         if let Expr(e) = &n.callee {
             let unboxed = *e.clone();
-
-            let caller_name = unboxed.ident().and_then(|i| Some(i.sym.to_string()));
-
-            if let Some(name) = caller_name {
-                println!("CALL: {:?}", name);
+            if let Ident(d) = unboxed {
+                println!("CALL: {:?}", d.sym.to_string());
             }
+
+            // let caller_name = unboxed.ident().and_then(|i| Some(i.sym.to_string()));
+
+            // if let Some(name) = caller_name {
+            //     println!("CALL: {:?}", name);
+            // }
         }
 
-        let arg = n.args.get(0).and_then(|a| Some(*a.expr.clone()));
+        let arg = n
+            .args
+            .get(0)
+            .and_then(|a| (*a.expr.clone()).lit())
+            .and_then(|d| {
+                if let Str(s) = d {
+                    return Some(s.value.to_string());
+                } else {
+                    return None;
+                }
+            });
 
-        if let Some(Lit(Str(hmm))) = arg {
-            println!("ARG: {:?}", hmm.value.to_string());
+        if let Some(s) = arg {
+            println!("ARG: {:?}", s);
         }
     }
 }
@@ -69,7 +84,7 @@ fn swc_main() {
     // let fm = cm
     //     .load_file(Path::new("test.js"))
     //     .expect("failed to load test.js");
-    let code = "hello('myarg')";
+    let code = "hello('myarg'); hehe('joopa');";
     let fm = cm.new_source_file(FileName::Custom("test.js".into()), code.into());
     let lexer = Lexer::new(
         // We want to parse ecmascript

@@ -1,3 +1,5 @@
+use std::error::Error;
+use std::path::Path;
 use std::{fs, io::ErrorKind};
 use swc_common::sync::Lrc;
 use swc_common::{FileName, SourceMap};
@@ -6,7 +8,7 @@ use swc_ecma_visit::Node;
 use swc_ecma_visit::Visit;
 
 use serde_json::Value;
-use swc_ecma_visit::swc_ecma_ast::CallExpr;
+use swc_ecma_visit::swc_ecma_ast::{CallExpr, Module};
 
 fn read_npm_scripts() -> Result<Vec<String>, std::io::Error> {
     let maybe_content = fs::read_to_string("package.json");
@@ -36,56 +38,58 @@ fn read_npm_scripts() -> Result<Vec<String>, std::io::Error> {
     return Ok(script_names);
 }
 
-struct MyVisitor {}
+struct TaskVisitor {
+    tasks: Vec<String>,
+}
 
-impl Visit for MyVisitor {
+impl TaskVisitor {
+    fn tasks_from_module(module: &Module) -> Vec<String> {
+        let mut visitor: TaskVisitor = TaskVisitor { tasks: Vec::new() };
+        visitor.visit_module(module, module);
+        return visitor.tasks;
+    }
+}
+
+impl Visit for TaskVisitor {
     fn visit_call_expr(&mut self, n: &CallExpr, _parent: &dyn Node) {
         use swc_ecma_visit::swc_ecma_ast::{Expr::*, ExprOrSuper::*, Lit::Str};
-        println!("#############");
-
-        println!("type id: {:?}", _parent.type_id());
 
         if let Expr(e) = &n.callee {
             let unboxed = *e.clone();
             if let Ident(d) = unboxed {
-                println!("CALL: {:?}", d.sym.to_string());
+                if d.sym.to_string() != "task" {
+                    return;
+                }
             }
-
-            // let caller_name = unboxed.ident().and_then(|i| Some(i.sym.to_string()));
-
-            // if let Some(name) = caller_name {
-            //     println!("CALL: {:?}", name);
-            // }
         }
 
         let arg = n
             .args
             .get(0)
             .and_then(|a| (*a.expr.clone()).lit())
-            .and_then(|d| {
-                if let Str(s) = d {
+            .and_then(|literal| {
+                if let Str(s) = literal {
                     return Some(s.value.to_string());
                 } else {
                     return None;
                 }
             });
 
-        if let Some(s) = arg {
-            println!("ARG: {:?}", s);
+        if let Some(value) = arg {
+            self.tasks.push(value);
         }
     }
 }
 
-fn swc_main() {
+fn parse_as_swc_module(path: &str) -> Result<Module, String> {
     let cm: Lrc<SourceMap> = Default::default();
-    // let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
 
-    // Real usage
-    // let fm = cm
-    //     .load_file(Path::new("test.js"))
-    //     .expect("failed to load test.js");
-    let code = "hello('myarg'); hehe('joopa');";
-    let fm = cm.new_source_file(FileName::Custom("test.js".into()), code.into());
+    let fm = cm.load_file(Path::new(path)).map_err(|op| {
+        return format!("Failed to load js file from '{}' because: {:?}", path, op);
+    })?;
+
+    // let code = "task('myarg'); hehe('joopa');";
+    // let fm = cm.new_source_file(FileName::Custom("test.js".into()), code.into());
     let lexer = Lexer::new(
         // We want to parse ecmascript
         Syntax::Es(Default::default()),
@@ -97,30 +101,37 @@ fn swc_main() {
 
     let mut parser = Parser::new_from(lexer);
 
-    for e in parser.take_errors() {
-        // e.into_diagnostic(&handler).emit();
-        println!("compilerrrr: {:?}", e);
-    }
+    // TODO: what errors are these?
+    // for e in parser.take_errors() {
+    //     // e.into_diagnostic(&handler).emit();
+    // }
 
-    let _module = parser
-        .parse_module()
-        .map_err(|e| {
-            println!("compilerrrr: {:?}", e);
-            // Unrecoverable fatal error occurred
-            // e.into_diagnostic(&handler).emit()
-        })
-        .expect("failed to parser module");
+    let module = parser.parse_module().map_err(|e| {
+        return format!("Failed to parse '{}' because: {:?}", path, e);
+        // Unrecoverable fatal error occurred
+        // e.into_diagnostic(&handler).emit()
+    })?;
 
-    let mut my: MyVisitor = MyVisitor {};
-    my.visit_module(&_module, &_module);
-
-    return ();
+    return Ok(module);
 }
 
-fn main() -> Result<(), std::io::Error> {
-    swc_main();
-    read_npm_scripts()?;
+fn hmm() -> Result<(), String> {
+    let module = parse_as_swc_module("jakefile.js")?;
+    let tasks = TaskVisitor::tasks_from_module(&module);
+    println!("tasks: {:?}", tasks);
+    return Ok(());
+}
+
+fn main() {
+    let res = hmm();
+
+    if let Err(e) = res {
+        println!("error {}", e.to_string());
+    }
+
+    // swc_main();
+    // read_npm_scripts()?;
     // println!("res: {:?}", scripts);
 
-    Ok(())
+    // Ok(())
 }

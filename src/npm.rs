@@ -1,16 +1,6 @@
-use std::error::Error;
-use std::path::Path;
-use std::{fs, io::ErrorKind};
-use swc_common::sync::Lrc;
-use swc_common::{FileName, SourceMap};
-use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
-use swc_ecma_visit::Node;
-use swc_ecma_visit::Visit;
-
-use serde_json::Value;
-use swc_ecma_visit::swc_ecma_ast::{CallExpr, Module};
-
 use super::runner::Runner;
+use serde_json::Value;
+use std::{fs, io::ErrorKind};
 
 pub struct NpmRunner {
     tasks: Vec<String>,

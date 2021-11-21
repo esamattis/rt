@@ -1,5 +1,8 @@
+use crate::utils::run_command;
+
 use super::runner::Runner;
 use serde_json::Value;
+use std::process::{Command, ExitStatus};
 use std::{fs, io::ErrorKind};
 
 pub struct NpmRunner {
@@ -66,7 +69,8 @@ impl Runner for NpmRunner {
         return Ok(());
     }
 
-    fn run(&self, task: &str) {
-        println!("npm run {}", task);
+    fn run(&self, task: &str) -> Result<ExitStatus, String> {
+        let mut npm = Command::new("npm");
+        return run_command(npm.arg("run").arg(task));
     }
 }

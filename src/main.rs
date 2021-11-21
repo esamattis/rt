@@ -3,6 +3,7 @@ use std::{env, process};
 mod jakefile;
 mod npm;
 mod runner;
+mod utils;
 use jakefile::JakeRunner;
 use npm::NpmRunner;
 use runner::Runner;
@@ -41,12 +42,18 @@ fn rt() -> Result<(), String> {
         for runner in runners {
             for task in runner.tasks() {
                 if task == arg {
-                    runner.run(task);
-                    return Ok(());
+                    let res = runner.run(task);
+
+                    match res {
+                        Ok(exit_code) => {
+                            process::exit(exit_code.code().unwrap_or(88));
+                        }
+                        Err(err) => return Err(err),
+                    }
                 }
             }
         }
-        eprintln!("No such task");
+        return Err(format!("Unknown task '{}'", arg));
     }
 
     return Ok(());
@@ -57,9 +64,13 @@ fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {
         return;
     }
 
-    println!("local -a rt_tasks");
+    // Generating something like:
+    //      local -a _rt_tasks
+    //      _rt_tasks=('ding:from npm' 'dong:from jake')")
+    //      _describe 'task' _rt_tasks
 
-    print!("rt_tasks=(");
+    println!("local -a _rt_tasks");
+    print!("_rt_tasks=(");
     for runner in runners {
         for task in runner.tasks() {
             print!("'{}:from {}' ", task, runner.name());
@@ -67,9 +78,7 @@ fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {
     }
     print!(")");
     println!("");
-
-    // println!("rt_tasks=('ding:description for c command' 'dong:description for d command')");
-    println!("_describe 'task' rt_tasks");
+    println!("_describe 'task' _rt_tasks");
 }
 
 fn main() {

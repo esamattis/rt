@@ -1,7 +1,6 @@
-use std::error::Error;
 use std::path::Path;
-use swc_common::sync::Lrc;
-use swc_common::{FileName, SourceMap};
+use std::process::{Command, ExitStatus};
+use swc_common::{sync::Lrc, SourceMap};
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
 use swc_ecma_visit::Node;
 use swc_ecma_visit::Visit;
@@ -9,6 +8,7 @@ use swc_ecma_visit::Visit;
 use swc_ecma_visit::swc_ecma_ast::{CallExpr, Module};
 
 use super::runner::Runner;
+use super::utils::run_command;
 
 struct TaskVisitor {
     tasks: Vec<String>,
@@ -116,7 +116,8 @@ impl Runner for JakeRunner {
         return Ok(());
     }
 
-    fn run(&self, task: &str) {
-        println!("jake run {}", task);
+    fn run(&self, task: &str) -> Result<ExitStatus, String> {
+        let mut jake = Command::new("./node_modules/.bin/jake");
+        return run_command(jake.arg(task));
     }
 }

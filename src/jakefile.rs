@@ -87,17 +87,17 @@ fn parse_as_swc_module(path: &str) -> Result<Module, String> {
     return Ok(module);
 }
 
-pub struct JakefileRunner {
+pub struct JakeRunner {
     tasks: Vec<String>,
 }
 
-impl JakefileRunner {
+impl JakeRunner {
     pub fn new() -> Self {
-        return JakefileRunner { tasks: Vec::new() };
+        return JakeRunner { tasks: Vec::new() };
     }
 }
 
-impl Runner for JakefileRunner {
+impl Runner for JakeRunner {
     fn name(&self) -> &'static str {
         return "jake";
     }

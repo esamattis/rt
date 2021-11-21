@@ -1,106 +1,71 @@
-use std::error::Error;
-use std::path::Path;
-use swc_common::sync::Lrc;
-use swc_common::{FileName, SourceMap};
-use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
-use swc_ecma_visit::Node;
-use swc_ecma_visit::Visit;
+use std::env;
 
-use swc_ecma_visit::swc_ecma_ast::{CallExpr, Module};
-
+mod jakefile;
 mod npm;
 mod runner;
+use jakefile::JakefileRunner;
 use npm::NpmRunner;
 use runner::Runner;
 
-struct TaskVisitor {
-    tasks: Vec<String>,
-}
+fn hmm() -> Result<(), String> {
+    let default = String::new();
+    let args: Vec<String> = env::args().collect();
+    let arg = args.get(1).unwrap_or(&default);
 
-impl TaskVisitor {
-    fn tasks_from_module(module: &Module) -> Vec<String> {
-        let mut visitor: TaskVisitor = TaskVisitor { tasks: Vec::new() };
-        visitor.visit_module(module, module);
-        return visitor.tasks;
+    let mut runners: Vec<Box<dyn Runner>> = Vec::new();
+
+    runners.push(Box::new(NpmRunner::new()));
+    runners.push(Box::new(JakefileRunner::new()));
+
+    for runner in runners.iter_mut() {
+        runner.load()?;
     }
-}
 
-impl Visit for TaskVisitor {
-    fn visit_call_expr(&mut self, n: &CallExpr, _parent: &dyn Node) {
-        use swc_ecma_visit::swc_ecma_ast::{Expr::*, ExprOrSuper::*, Lit::Str};
+    if arg == "--zsh-complete" {
+        zsh_autocomplete(&runners);
+        return Ok(());
+    }
 
-        if let Expr(e) = &n.callee {
-            let unboxed = *e.clone();
-            if let Ident(d) = unboxed {
-                if d.sym.to_string() != "task" {
-                    return;
+    if arg == "" {
+        for runner in runners {
+            for task in runner.tasks() {
+                println!("{}", task);
+            }
+        }
+    } else {
+        for runner in runners {
+            for task in runner.tasks() {
+                if task == arg {
+                    runner.run(task);
+                    return Ok(());
                 }
             }
         }
-
-        let arg = n
-            .args
-            .get(0)
-            .and_then(|a| (*a.expr.clone()).lit())
-            .and_then(|literal| {
-                if let Str(s) = literal {
-                    return Some(s.value.to_string());
-                } else {
-                    return None;
-                }
-            });
-
-        if let Some(value) = arg {
-            self.tasks.push(value);
-        }
+        println!("No such task");
     }
-}
-
-fn parse_as_swc_module(path: &str) -> Result<Module, String> {
-    let cm: Lrc<SourceMap> = Default::default();
-
-    let fm = cm.load_file(Path::new(path)).map_err(|op| {
-        return format!("Failed to load js file from '{}' because: {:?}", path, op);
-    })?;
-
-    // let code = "task('myarg'); hehe('joopa');";
-    // let fm = cm.new_source_file(FileName::Custom("test.js".into()), code.into());
-    let lexer = Lexer::new(
-        // We want to parse ecmascript
-        Syntax::Es(Default::default()),
-        // EsVersion defaults to es5
-        Default::default(),
-        StringInput::from(&*fm),
-        None,
-    );
-
-    let mut parser = Parser::new_from(lexer);
-
-    // TODO: what errors are these?
-    // for e in parser.take_errors() {
-    //     // e.into_diagnostic(&handler).emit();
-    // }
-
-    let module = parser.parse_module().map_err(|e| {
-        return format!("Failed to parse '{}' because: {:?}", path, e);
-        // Unrecoverable fatal error occurred
-        // e.into_diagnostic(&handler).emit()
-    })?;
-
-    return Ok(module);
-}
-
-fn hmm() -> Result<(), String> {
-    // let module = parse_as_swc_module("jakefile.js")?;
-    // let tasks = TaskVisitor::tasks_from_module(&module);
-    // println!("tasks: {:?}", tasks);
-
-    let mut npm = NpmRunner::new();
-    npm.load()?;
-
-    println!("{:?}", npm.tasks());
 
     return Ok(());
+}
+
+fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {
+    if runners.len() == 0 {
+        println!("return 0");
+        return;
+    }
+
+    println!("local -a rt_tasks");
+
+    print!("rt_tasks=(");
+    for runner in runners {
+        for task in runner.tasks() {
+            print!("'{}:from {}' ", task, runner.name());
+        }
+    }
+    print!(")");
+    println!("");
+
+    // println!("rt_tasks=('ding:description for c command' 'dong:description for d command')");
+    println!("_describe 'task' rt_tasks");
 }
 
 fn main() {

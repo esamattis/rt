@@ -7,6 +7,10 @@ pub struct NpmRunner {
 }
 
 impl NpmRunner {
+    pub fn new() -> Self {
+        return NpmRunner { tasks: Vec::new() };
+    }
+
     fn read_package_json() -> Result<Vec<String>, String> {
         let maybe_content = fs::read_to_string("package.json");
         let mut script_names: Vec<String> = Vec::new();
@@ -40,15 +44,12 @@ impl NpmRunner {
 }
 
 impl Runner for NpmRunner {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         return "npm";
     }
+
     fn tasks(&self) -> &Vec<String> {
         return &self.tasks;
-    }
-
-    fn new() -> Self {
-        return NpmRunner { tasks: Vec::new() };
     }
 
     fn load(&mut self) -> Result<(), String> {

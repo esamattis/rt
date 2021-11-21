@@ -12,13 +12,21 @@ pub fn run_command(cmd: &mut Command) -> Result<ExitStatus, String> {
                     return Ok(exit_status);
                 }
                 Err(e) => {
-                    return Err(format!("Failed waiting command: {}", e.to_string()));
+                    return Err(format!(
+                        "Failed waiting command {:?}: {}",
+                        cmd.get_program(),
+                        e.to_string()
+                    ));
                 }
             }
         }
 
         Err(e) => {
-            return Err(format!("Failed to spawn: {}", e.to_string()));
+            return Err(format!(
+                "Failed to spawn {:?}: {}",
+                cmd.get_program(),
+                e.to_string()
+            ));
         }
     }
 }

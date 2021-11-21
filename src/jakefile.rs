@@ -1,3 +1,4 @@
+use std::io::ErrorKind;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 use swc_common::{sync::Lrc, SourceMap};
@@ -53,12 +54,20 @@ impl Visit for TaskVisitor {
     }
 }
 
-fn parse_as_swc_module(path: &str) -> Result<Module, String> {
+fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
     let cm: Lrc<SourceMap> = Default::default();
 
-    let fm = cm.load_file(Path::new(path)).map_err(|op| {
-        return format!("Failed to load js file from '{}' because: {:?}", path, op);
-    })?;
+    let maybe_file = cm.load_file(Path::new(path));
+
+    let fm = match maybe_file {
+        Ok(f) => f,
+        Err(e) => {
+            if ErrorKind::NotFound == e.kind() {
+                return Ok(None);
+            }
+            return Err(e.to_string());
+        }
+    };
 
     // let code = "task('myarg'); hehe('joopa');";
     // let fm = cm.new_source_file(FileName::Custom("test.js".into()), code.into());
@@ -84,7 +93,7 @@ fn parse_as_swc_module(path: &str) -> Result<Module, String> {
         // e.into_diagnostic(&handler).emit()
     })?;
 
-    return Ok(module);
+    return Ok(Some(module));
 }
 
 pub struct JakeRunner {
@@ -107,11 +116,11 @@ impl Runner for JakeRunner {
     }
 
     fn load(&mut self) -> Result<(), String> {
-        let module = parse_as_swc_module("jakefile.js")?;
+        let maybe_module = parse_as_swc_module("jakefile.js")?;
 
-        let tasks = TaskVisitor::tasks_from_module(&module);
-
-        self.tasks = tasks;
+        if let Some(module) = maybe_module {
+            self.tasks = TaskVisitor::tasks_from_module(&module);
+        }
 
         return Ok(());
     }

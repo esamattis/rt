@@ -1,7 +1,7 @@
 use std::process::{Command, ExitStatus};
 
-pub fn run_command(cmd2: &mut Command) -> Result<ExitStatus, String> {
-    let maybe_child = cmd2.spawn();
+pub fn run_command(cmd: &mut Command) -> Result<ExitStatus, String> {
+    let maybe_child = cmd.spawn();
 
     match maybe_child {
         Ok(mut child) => {

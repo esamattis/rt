@@ -65,7 +65,7 @@ fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
             if ErrorKind::NotFound == e.kind() {
                 return Ok(None);
             }
-            return Err(e.to_string());
+            return Err(format!("Failed to read {}: {}", path, e.to_string()));
         }
     };
 

@@ -38,7 +38,7 @@ impl NpmRunner {
                     return Ok(script_names);
                 }
 
-                return Err(e.to_string());
+                return Err(format!("Failed to read package.json: {}", e.to_string()));
             }
         }
 
@@ -56,16 +56,8 @@ impl Runner for NpmRunner {
     }
 
     fn load(&mut self) -> Result<(), String> {
-        self.tasks = Vec::new();
-        match NpmRunner::read_package_json() {
-            Ok(scripts) => {
-                self.tasks = scripts;
-            }
-            Err(e) => {
-                return Err(format!("Failed to read package.json: {}", e));
-            }
-        }
-
+        let scripts = NpmRunner::read_package_json()?;
+        self.tasks = scripts;
         return Ok(());
     }
 

@@ -1,4 +1,3 @@
-#![feature(command_access)]
 use std::{env, process};
 
 mod jakefile;

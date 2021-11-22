@@ -15,15 +15,13 @@ But to be honest this project was just an excuse to learn Rust and SWC.
 Get binary from the [releases page](https://github.com/esamattis/rt/releases)
 and put it to PATH or build from the sources.
 
-## Configure tab-completion
+Configure tab-completion
 
-Add
+Put this to  `~/.zshrc`:
 
 ```sh
 compdef 'eval "$(rt --zsh-complete)"' rt
 ```
-
-to `~/.zshrc`.
 
 
 ## Usage

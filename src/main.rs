@@ -39,24 +39,36 @@ fn rt() -> Result<(), String> {
             }
         }
     } else {
-        for runner in runners {
-            for task in runner.tasks() {
-                if task == arg {
-                    let res = runner.run(task);
-
-                    match res {
-                        Ok(exit_code) => {
-                            process::exit(exit_code.code().unwrap_or(88));
-                        }
-                        Err(err) => return Err(err),
-                    }
-                }
-            }
+        for request_arg in &args[1..] {
+            run_task(&request_arg, &runners)?;
         }
-        return Err(format!("Unknown task '{}'", arg));
     }
 
     return Ok(());
+}
+
+fn run_task(request_arg: &str, runners: &Vec<Box<dyn Runner>>) -> Result<(), String> {
+    for runner in runners {
+        for task in runner.tasks() {
+            if task == request_arg {
+                let res = runner.run(task);
+
+                match res {
+                    Ok(exit_code) => {
+                        let code = exit_code.code().unwrap_or(88);
+                        if code != 0 {
+                            process::exit(code);
+                        } else {
+                            return Ok(());
+                        }
+                    }
+                    Err(err) => return Err(err),
+                }
+            }
+        }
+    }
+
+    return Err(format!("Unknown task '{}'", request_arg));
 }
 
 fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {

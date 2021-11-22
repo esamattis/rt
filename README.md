@@ -12,7 +12,8 @@ But to be honest this project was just an excuse to learn Rust and SWC.
 
 ## Install
 
-todo
+Get binary from the [releases page](https://github.com/esamattis/rt/releases)
+and put it to PATH or build from the sources.
 
 ## Configure tab-completion
 

@@ -85,7 +85,16 @@ fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {
     print!("_rt_tasks=(");
     for runner in runners {
         for task in runner.tasks() {
-            print!("'{}:from {}' ", task, runner.name());
+            let mut escaped = String::new();
+
+            for a_char in task.chars() {
+                if a_char == ':' {
+                    escaped.push('\\');
+                }
+                escaped.push(a_char);
+            }
+
+            print!("'{}:from {}' ", escaped, runner.name());
         }
     }
     print!(")");

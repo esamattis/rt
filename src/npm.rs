@@ -2,6 +2,7 @@ use crate::utils::run_command;
 
 use super::runner::Runner;
 use serde_json::Value;
+use std::path::Path;
 use std::process::{Command, ExitStatus};
 use std::{fs, io::ErrorKind};
 
@@ -62,6 +63,16 @@ impl Runner for NpmRunner {
     }
 
     fn run(&self, task: &str) -> Result<ExitStatus, String> {
+        // Detect pnpm usage from the pnpm lock file. The ../../ is for
+        // packges/* style monorepo
+        let is_pnpm =
+            Path::new("pnpm-lock.yaml").exists() || Path::new("../../pnpm-lock.yaml").exists();
+
+        if is_pnpm {
+            let mut pnpm = Command::new("pnpm");
+            return run_command(pnpm.arg("run").arg(task));
+        }
+
         let mut npm = Command::new("npm");
         return run_command(npm.arg("run").arg(task));
     }

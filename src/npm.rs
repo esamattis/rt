@@ -62,7 +62,7 @@ impl Runner for NpmRunner {
         return Ok(());
     }
 
-    fn run(&self, task: &str) -> Result<ExitStatus, String> {
+    fn run(&self, task: &str, args: &[String]) -> Result<ExitStatus, String> {
         // Detect pnpm usage from the pnpm lock file. The ../../ is for
         // packges/* style monorepo
         let is_pnpm =
@@ -70,10 +70,10 @@ impl Runner for NpmRunner {
 
         if is_pnpm {
             let mut pnpm = Command::new("pnpm");
-            return run_command(pnpm.arg("run").arg(task));
+            return run_command(pnpm.arg("run").arg(task).args(args));
         }
 
         let mut npm = Command::new("npm");
-        return run_command(npm.arg("run").arg(task));
+        return run_command(npm.arg("run").arg(task).arg("--").args(args));
     }
 }

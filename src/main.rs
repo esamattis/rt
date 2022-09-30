@@ -75,12 +75,26 @@ fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {
     }
 
     // Generating something like:
-    //      local -a _rt_tasks
-    //      _rt_tasks=('ding:from npm' 'dong:from jake')")
-    //      _describe 'task' _rt_tasks
+    //   local -a _args
+    //   _args=($BUFFER)
+    //   _argument_count="${#words[@]}"
 
-    println!("local -a _rt_tasks");
-    print!("_rt_tasks=(");
+    //   if [ "$_argument_count" = "2" ]; then
+    //       local -a _rt_tasks
+    //       _rt_tasks=('comman1:from npm' 'comman2:from jake' )
+    //       _describe 'task' _rt_tasks
+    //   else
+    //       _files .
+    //   fi
+
+    println!("local -a _args");
+    println!("_args=($BUFFER)");
+    println!("_argument_count=\"${{#words[@]}}\"");
+    println!("");
+
+    println!("if [ \"$_argument_count\" = \"2\" ]; then");
+    println!("    local -a _rt_tasks");
+    print!("    _rt_tasks=(");
     for runner in runners {
         for task in runner.tasks() {
             let mut escaped = String::new();
@@ -97,7 +111,11 @@ fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {
     }
     print!(")");
     println!("");
-    println!("_describe 'task' _rt_tasks");
+    println!("    _describe 'task' _rt_tasks");
+
+    println!("else");
+    println!("    _files .");
+    println!("fi");
 }
 
 fn main() {

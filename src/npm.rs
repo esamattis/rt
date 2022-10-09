@@ -70,7 +70,7 @@ impl Runner for NpmRunner {
 
         if is_pnpm {
             let mut pnpm = Command::new("pnpm");
-            return run_command(pnpm.arg("run").arg(task).args(args));
+            return run_command(pnpm.arg("run").arg(task).arg("--").args(args));
         }
 
         let mut npm = Command::new("npm");

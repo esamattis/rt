@@ -69,10 +69,19 @@ impl Runner for NpmRunner {
             Path::new("pnpm-lock.yaml").exists() || Path::new("../../pnpm-lock.yaml").exists();
 
         if is_pnpm {
+            eprintln!("[rt] pnpnm detected");
             let mut pnpm = Command::new("pnpm");
-            return run_command(pnpm.arg("run").arg(task).arg("--").args(args));
+            return run_command(pnpm.arg("run").arg(task).args(args));
         }
 
+        let is_yarn1 = Path::new("yarn.lock").exists() || Path::new("../../yarn.lock").exists();
+        if is_yarn1 {
+            eprintln!("[rt] yarn detected");
+            let mut yarn = Command::new("yarn");
+            return run_command(yarn.arg("run").arg(task).args(args));
+        }
+
+        eprintln!("Running with npm");
         let mut npm = Command::new("npm");
         return run_command(npm.arg("run").arg(task).arg("--").args(args));
     }

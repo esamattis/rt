@@ -1,10 +1,8 @@
 use std::{env, process};
 
-mod jakefile;
 mod npm;
 mod runner;
 mod utils;
-use jakefile::JakeRunner;
 use npm::NpmRunner;
 use runner::Runner;
 
@@ -16,7 +14,6 @@ fn rt() -> Result<(), String> {
     let mut runners: Vec<Box<dyn Runner>> = Vec::new();
 
     runners.push(Box::new(NpmRunner::new()));
-    runners.push(Box::new(JakeRunner::new()));
 
     if arg == "--zsh-complete" {
         for runner in runners.iter_mut() {

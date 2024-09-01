@@ -125,6 +125,7 @@ impl Runner for JakeRunner {
 
     fn run(&self, task: &str, _args: &[String]) -> Result<ExitStatus, String> {
         let mut jake = Command::new("./node_modules/.bin/jake");
+        eprintln!("[rt] using jake");
         return run_command(jake.arg(task));
     }
 }

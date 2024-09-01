@@ -129,3 +129,30 @@ impl Runner for JakeRunner {
         return run_command(jake.arg(task));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::rc::Rc;
+
+    #[test]
+    fn test_parse_task_with_function() {
+        let code = r#"task("ding", () => {});"#;
+        let cm: Lrc<SourceMap> = Default::default();
+        let fm = cm.new_source_file(
+            Rc::new(swc_common::FileName::Custom("test.js".into())),
+            code.into(),
+        );
+        let lexer = Lexer::new(
+            Syntax::Es(Default::default()),
+            Default::default(),
+            StringInput::from(&*fm),
+            None,
+        );
+        let mut parser = Parser::new_from(lexer);
+        let module = parser.parse_module().unwrap();
+        let tasks = TaskVisitor::tasks_from_module(&module);
+
+        assert_eq!(tasks, vec!["ding".to_string()]);
+    }
+}

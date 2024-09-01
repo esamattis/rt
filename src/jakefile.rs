@@ -23,15 +23,14 @@ impl TaskVisitor {
 
 impl Visit for TaskVisitor {
     fn visit_call_expr(&mut self, n: &CallExpr) {
-        if let Callee::Expr(e) = &n.callee {
-            let unboxed = *e.clone();
-            if let Expr::Fn(d) = unboxed {
-                if let Some(ident) = d.ident {
-                    if ident.sym.to_string() != "task" {
-                        return;
-                    }
-                }
-            }
+        let Callee::Expr(e) = &n.callee else { return };
+
+        let Expr::Ident(ident) = *e.clone() else {
+            return;
+        };
+
+        if ident.sym.to_string() != "task" {
+            return;
         }
 
         let arg = n
@@ -135,9 +134,7 @@ mod tests {
     use super::*;
     use std::rc::Rc;
 
-    #[test]
-    fn test_parse_task_with_function() {
-        let code = r#"task("ding", () => {});"#;
+    fn parse_tasks(code: &str) -> Vec<String> {
         let cm: Lrc<SourceMap> = Default::default();
         let fm = cm.new_source_file(
             Rc::new(swc_common::FileName::Custom("test.js".into())),
@@ -151,8 +148,41 @@ mod tests {
         );
         let mut parser = Parser::new_from(lexer);
         let module = parser.parse_module().unwrap();
-        let tasks = TaskVisitor::tasks_from_module(&module);
+        return TaskVisitor::tasks_from_module(&module);
+    }
+
+    #[test]
+    fn test_parse_task_with_function() {
+        let code = r#"task("ding", () => {});"#;
+        let tasks = parse_tasks(code);
 
         assert_eq!(tasks, vec!["ding".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_task_with_function2() {
+        let code = r#"task ( "ding", aFunction);"#;
+        let tasks = parse_tasks(code);
+
+        assert_eq!(tasks, vec!["ding".to_string()]);
+    }
+
+    #[test]
+    fn test_does_not_parse_wrong_functions() {
+        let code = r#"wrong( "ding", aFunction);"#;
+        let tasks = parse_tasks(code);
+
+        assert!(tasks.is_empty());
+    }
+    #[test]
+    fn test_does_not_parse_nested_tasks() {
+        let code = r#"
+            function aFunction() {
+                task("ding", () => {});
+            }
+            "#;
+        let tasks = parse_tasks(code);
+
+        assert!(tasks.is_empty());
     }
 }

@@ -1,0 +1,29 @@
+name: Run tests
+
+on:
+    push:
+        branches:
+            - "*"
+
+jobs:
+    release:
+        permissions:
+            contents: write
+        runs-on: "macos-latest"
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: 1.80.0
+                  override: true
+            - uses: actions/cache@v2
+              with:
+                  key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+                  path: |
+                      ~/.cargo/bin/
+                      ~/.cargo/registry/index/
+                      ~/.cargo/registry/cache/
+                      ~/.cargo/git/db/
+                      target/
+            - name: Run tests
+              run: cargo test

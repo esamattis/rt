@@ -27,6 +27,8 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+      - name: Run tests
+        run: cargo test
       - name: Build release
         run: cargo build --release
       - name: Archive as .tar.gz (Linux)

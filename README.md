@@ -2,7 +2,9 @@
 # rt – "run task"
 
 rt is a simple wrapper for JavaScript task runners with instant tab-completion
-for zsh. It supports npm scripts and [Jake.js](https://jakejs.com/).
+for zsh. It supports package.json scripts and [Jake.js](https://jakejs.com/).
+The package.json script runner is automatically detected (npm, pnpm, yarn 1.0)
+from the lock files.
 
 The only reason this exists because tab-completion for npm scripts and jakefiles
 is really slow. rt is written using Rust and [SWC](https://swc.rs/) for jakefile

@@ -6,7 +6,7 @@ on:
             - "*"
 
 jobs:
-    release:
+    test:
         permissions:
             contents: write
         runs-on: "macos-latest"

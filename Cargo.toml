@@ -8,8 +8,8 @@ edition = "2018"
 [dependencies]
 serde_json = "1.0"
 swc_common = "0.37.5"
+swc_ecma_ast = "0.118.2"
 swc_ecma_parser = "0.149.1"
-swc_ecma_visit = "0.104.8"
 
 #swc_ecmascript = { version = "0.84.1", features = ["parser", "transforms", "module", "optimization", "react", "typescript", "utils", "visit", "codegen", "utils"] }
 #swc_ecma_preset_env = "0.63.1"

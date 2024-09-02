@@ -330,8 +330,8 @@ version = "0.1.0"
 dependencies = [
  "serde_json",
  "swc_common",
+ "swc_ecma_ast",
  "swc_ecma_parser",
- "swc_ecma_visit",
 ]
 
 [[package]]
@@ -537,21 +537,6 @@ dependencies = [
  "swc_ecma_ast",
  "tracing",
  "typed-arena",
-]
-
-[[package]]
-name = "swc_ecma_visit"
-version = "0.104.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b1c6802e68e51f336e8bc9644e9ff9da75d7da9c1a6247d532f2e908aa33e81"
-dependencies = [
- "new_debug_unreachable",
- "num-bigint",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_visit",
- "tracing",
 ]
 
 [[package]]

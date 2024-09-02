@@ -1,55 +1,13 @@
+use std::borrow::Borrow;
 use std::io::ErrorKind;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 use swc_common::{sync::Lrc, SourceMap};
+use swc_ecma_ast::{Callee, Expr, Lit, Module, ModuleItem, Stmt};
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
-use swc_ecma_visit::swc_ecma_ast::{CallExpr, Callee, Expr, Lit, Module};
-use swc_ecma_visit::Visit;
 
 use super::runner::Runner;
 use super::utils::run_command;
-
-struct TaskVisitor {
-    tasks: Vec<String>,
-}
-
-impl TaskVisitor {
-    fn tasks_from_module(module: &Module) -> Vec<String> {
-        let mut visitor: TaskVisitor = TaskVisitor { tasks: Vec::new() };
-        visitor.visit_module(module);
-        return visitor.tasks;
-    }
-}
-
-impl Visit for TaskVisitor {
-    fn visit_call_expr(&mut self, n: &CallExpr) {
-        let Callee::Expr(e) = &n.callee else { return };
-
-        let Expr::Ident(ident) = *e.clone() else {
-            return;
-        };
-
-        if ident.sym.to_string() != "task" {
-            return;
-        }
-
-        let arg = n
-            .args
-            .get(0)
-            .and_then(|a| (*a.expr.clone()).lit())
-            .and_then(|literal| {
-                if let Lit::Str(s) = literal {
-                    return Some(s.value.to_string());
-                } else {
-                    return None;
-                }
-            });
-
-        if let Some(value) = arg {
-            self.tasks.push(value);
-        }
-    }
-}
 
 fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
     let cm: Lrc<SourceMap> = Default::default();
@@ -66,8 +24,6 @@ fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
         }
     };
 
-    // let code = "task('myarg'); hehe('joopa');";
-    // let fm = cm.new_source_file(FileName::Custom("test.js".into()), code.into());
     let lexer = Lexer::new(
         // We want to parse ecmascript
         Syntax::Es(Default::default()),
@@ -93,6 +49,61 @@ fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
     return Ok(Some(module));
 }
 
+fn get_task_fn_calls(module: &Module) -> Vec<String> {
+    let mut tasks: Vec<String> = Vec::new();
+
+    for item in module.body.iter() {
+        // Is statement, eg. not an export declaration etc.
+        let ModuleItem::Stmt(stmt) = item else {
+            continue;
+        };
+
+        // Is expression statament, eg. not a variable declaration etc.
+        let Stmt::Expr(expr) = stmt else {
+            continue;
+        };
+
+        // is call experssion
+        let Expr::Call(call) = expr.expr.borrow() else {
+            continue;
+        };
+
+        // Is regular function call, eg. not super()  or dynamic import() call
+        let Callee::Expr(expr) = &call.callee else {
+            continue;
+        };
+
+        // get the caller identifier eg. "fn" from fn()
+        let Expr::Ident(ident) = expr.borrow() else {
+            continue;
+        };
+
+        // is task();
+        if ident.sym.to_string() != "task" {
+            continue;
+        }
+
+        // get the first argument
+        let Some(arg) = call.args.get(0) else {
+            continue;
+        };
+
+        // The first must be a literal. Eg. not a task(ding)
+        let Expr::Lit(literal) = arg.expr.borrow() else {
+            continue;
+        };
+
+        // It must the a string literal
+        let Lit::Str(string_literal) = literal else {
+            continue;
+        };
+
+        tasks.push(string_literal.value.to_string());
+    }
+
+    return tasks;
+}
+
 pub struct JakeRunner {
     tasks: Vec<String>,
 }
@@ -116,8 +127,8 @@ impl Runner for JakeRunner {
         let maybe_module = parse_as_swc_module("jakefile.js")?;
 
         if let Some(module) = maybe_module {
-            self.tasks = TaskVisitor::tasks_from_module(&module);
-        }
+            self.tasks = get_task_fn_calls(&module);
+        };
 
         return Ok(());
     }
@@ -148,7 +159,8 @@ mod tests {
         );
         let mut parser = Parser::new_from(lexer);
         let module = parser.parse_module().unwrap();
-        return TaskVisitor::tasks_from_module(&module);
+
+        return get_task_fn_calls(&module);
     }
 
     #[test]
@@ -160,8 +172,27 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_multiple_tasks() {
+        let code = r#"
+            task("ding", () => {});
+            task("dong", () => {});
+        "#;
+        let tasks = parse_tasks(code);
+
+        assert_eq!(tasks, vec!["ding".to_string(), "dong".to_string()]);
+    }
+
+    #[test]
     fn test_parse_task_with_function2() {
         let code = r#"task ( "ding", aFunction);"#;
+        let tasks = parse_tasks(code);
+
+        assert_eq!(tasks, vec!["ding".to_string()]);
+    }
+
+    #[test]
+    fn test_parse_task_with_async_function() {
+        let code = r#"task("ding", async ()=>{});"#;
         let tasks = parse_tasks(code);
 
         assert_eq!(tasks, vec!["ding".to_string()]);

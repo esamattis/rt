@@ -1,11 +1,15 @@
 use std::{env, process};
 
+mod composer;
 mod jakefile;
 mod npm;
 mod runner;
 mod utils;
+
+use composer::ComposerRunner;
 use jakefile::JakeRunner;
 use npm::NpmRunner;
+
 use runner::Runner;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -19,6 +23,7 @@ fn rt() -> Result<(), String> {
 
     runners.push(Box::new(NpmRunner::new()));
     runners.push(Box::new(JakeRunner::new()));
+    runners.push(Box::new(ComposerRunner::new()));
 
     if arg == "--version" || arg == "-v" || arg == "-V" {
         println!("{}", VERSION);

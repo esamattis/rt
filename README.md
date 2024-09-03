@@ -10,7 +10,7 @@ Supported runners:
     - With auto detection for npm, pnpm, yarn 1.0
 - Jake.js
 - PHP composer.json scripts
-- Picks excutables from `bin`, `scripts` and `tools` directories in the current
+- Picks executables from `bin`, `scripts` and `tools` directories in the current
   working directory
     - Ex. to run `./scripts/build.sh` you can just type `rt build.sh`
 

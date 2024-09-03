@@ -16,30 +16,31 @@ impl NpmRunner {
     }
 
     fn read_package_json() -> Result<Vec<String>, String> {
-        let maybe_content = fs::read_to_string("package.json");
+        let content = fs::read_to_string("package.json");
         let mut script_names: Vec<String> = Vec::new();
 
-        match maybe_content {
-            Ok(content) => {
-                let json: Value = serde_json::from_str(&content).map_err(|e| {
-                    return format!("Failed to parse package.json: {:?}", e);
-                })?;
-
-                let maybe_scripts = json["scripts"].as_object();
-                if let Some(scripts) = maybe_scripts {
-                    for (key, value) in scripts.iter() {
-                        if let Value::String(_) = value {
-                            script_names.push(key.to_string());
-                        }
-                    }
-                }
-            }
+        let content = match content {
+            Ok(content) => content,
             Err(e) => {
                 if ErrorKind::NotFound == e.kind() {
                     return Ok(script_names);
                 }
 
                 return Err(format!("Failed to read package.json: {}", e.to_string()));
+            }
+        };
+
+        let json: Value = serde_json::from_str(&content).map_err(|e| {
+            return format!("Failed to parse package.json: {:?}", e);
+        })?;
+
+        let Some(scripts) = json["scripts"].as_object() else {
+            return Ok(script_names);
+        };
+
+        for (key, value) in scripts.iter() {
+            if let Value::String(_) = value {
+                script_names.push(key.to_string());
             }
         }
 

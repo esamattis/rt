@@ -8,6 +8,8 @@ use jakefile::JakeRunner;
 use npm::NpmRunner;
 use runner::Runner;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn rt() -> Result<(), String> {
     let default = String::new();
     let args: Vec<String> = env::args().collect();
@@ -17,6 +19,11 @@ fn rt() -> Result<(), String> {
 
     runners.push(Box::new(NpmRunner::new()));
     runners.push(Box::new(JakeRunner::new()));
+
+    if arg == "--version" || arg == "-v" || arg == "-V" {
+        println!("{}", VERSION);
+        return Ok(());
+    }
 
     if arg == "--zsh-complete" {
         for runner in runners.iter_mut() {

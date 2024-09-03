@@ -10,6 +10,9 @@ Supported runners:
     - With auto detection for npm, pnpm, yarn 1.0
 - Jake.js
 - PHP composer.json scripts
+- Picks excutables from `bin`, `scripts` and `tools` directories in the current
+  working directory
+    - Ex. to run `./scripts/build.sh` you can just type `rt build.sh`
 
 The only reason this exists because tab-completion for npm scripts and jakefiles
 is really slow. rt is written using Rust and [SWC](https://swc.rs/) for jakefile
@@ -32,3 +35,9 @@ compdef 'eval "$(rt --zsh-complete)"' rt
 ## Usage
 
 In a project type `rt ` and hit the tab key
+
+## Configuring
+
+Set `RT_RUNNERS` environment variable to a comma separated list of runners you
+want to use. List all available runners with `rt --runners`. By default all
+runners are enabled.

@@ -25,6 +25,7 @@ git commit -m "Bump version to $next_version"
 
 git tag -a "v$next_version" -m "Release v$next_version"
 
+git push
 git push --tags
 
 open "https://github.com/esamattis/rt/releases/new?tag=v$next_version"

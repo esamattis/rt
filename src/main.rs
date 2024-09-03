@@ -39,6 +39,11 @@ fn rt() -> Result<(), String> {
         }
     }
 
+    // Clear to list all runners if --runners is passed
+    if arg == "--runners" {
+        runners = Vec::new();
+    }
+
     if runners.len() == 0 {
         runners.push(Box::new(NpmRunner::new()));
         runners.push(Box::new(JakeRunner::new()));
@@ -46,6 +51,13 @@ fn rt() -> Result<(), String> {
         runners.push(Box::new(ScriptsRunner::new("scripts".to_string())));
         runners.push(Box::new(ScriptsRunner::new("tools".to_string())));
         runners.push(Box::new(ScriptsRunner::new("bin".to_string())));
+    }
+
+    if arg == "--runners" {
+        for runner in runners {
+            println!("{}", runner.name());
+        }
+        return Ok(());
     }
 
     if arg == "--version" || arg == "-v" || arg == "-V" {

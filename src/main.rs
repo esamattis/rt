@@ -19,11 +19,26 @@ fn rt() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     let arg = args.get(1).unwrap_or(&default);
 
+    let runners_env = env::var("RT_RUNNERS").unwrap_or_default();
+    let active_runners = runners_env.split(",");
+
     let mut runners: Vec<Box<dyn Runner>> = Vec::new();
 
-    runners.push(Box::new(NpmRunner::new()));
-    runners.push(Box::new(JakeRunner::new()));
-    runners.push(Box::new(ComposerRunner::new()));
+    for runner in active_runners {
+        match runner {
+            "" => {}
+            "package.json" => runners.push(Box::new(NpmRunner::new())),
+            "jakefile" => runners.push(Box::new(JakeRunner::new())),
+            "composer.json" => runners.push(Box::new(ComposerRunner::new())),
+            _ => eprintln!("Unknown runner '{}' in RT_RUNNERS", runner),
+        }
+    }
+
+    if runners.len() == 0 {
+        runners.push(Box::new(NpmRunner::new()));
+        runners.push(Box::new(JakeRunner::new()));
+        runners.push(Box::new(ComposerRunner::new()));
+    }
 
     if arg == "--version" || arg == "-v" || arg == "-V" {
         println!("{}", VERSION);

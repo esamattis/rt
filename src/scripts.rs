@@ -14,7 +14,7 @@ pub struct ScriptsRunner {
 
 impl ScriptsRunner {
     pub fn new(dir: String) -> Self {
-        let name = format!("scripts:./{}", &dir);
+        let name = format!("scripts:{}", &dir);
         return ScriptsRunner {
             dir,
             tasks: Vec::new(),

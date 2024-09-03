@@ -49,7 +49,7 @@ impl NpmRunner {
 
 impl Runner for NpmRunner {
     fn name(&self) -> &'static str {
-        return "npm";
+        return "package.json";
     }
 
     fn tasks(&self) -> &Vec<String> {

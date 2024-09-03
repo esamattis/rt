@@ -116,7 +116,7 @@ impl JakeRunner {
 
 impl Runner for JakeRunner {
     fn name(&self) -> &'static str {
-        return "jake";
+        return "jakefile";
     }
 
     fn tasks(&self) -> &Vec<String> {

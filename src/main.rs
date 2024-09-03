@@ -4,6 +4,7 @@ mod composer;
 mod jakefile;
 mod npm;
 mod runner;
+mod scripts;
 mod utils;
 
 use composer::ComposerRunner;
@@ -11,6 +12,7 @@ use jakefile::JakeRunner;
 use npm::NpmRunner;
 
 use runner::Runner;
+use scripts::ScriptsRunner;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -30,6 +32,9 @@ fn rt() -> Result<(), String> {
             "package.json" => runners.push(Box::new(NpmRunner::new())),
             "jakefile" => runners.push(Box::new(JakeRunner::new())),
             "composer.json" => runners.push(Box::new(ComposerRunner::new())),
+            "scripts:scripts" => runners.push(Box::new(ScriptsRunner::new("scripts".to_string()))),
+            "scripts:tools" => runners.push(Box::new(ScriptsRunner::new("tools".to_string()))),
+            "scripts:bin" => runners.push(Box::new(ScriptsRunner::new("bin".to_string()))),
             _ => eprintln!("Unknown runner '{}' in RT_RUNNERS", runner),
         }
     }
@@ -38,6 +43,9 @@ fn rt() -> Result<(), String> {
         runners.push(Box::new(NpmRunner::new()));
         runners.push(Box::new(JakeRunner::new()));
         runners.push(Box::new(ComposerRunner::new()));
+        runners.push(Box::new(ScriptsRunner::new("scripts".to_string())));
+        runners.push(Box::new(ScriptsRunner::new("tools".to_string())));
+        runners.push(Box::new(ScriptsRunner::new("bin".to_string())));
     }
 
     if arg == "--version" || arg == "-v" || arg == "-V" {

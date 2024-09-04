@@ -41,3 +41,4 @@ In a project type `rt ` and hit the tab key
 Set `RT_RUNNERS` environment variable to a comma separated list of runners without spaces you
 want to use. List all available runners with `rt --runners`. By default all
 runners are enabled. The order of the runners is the order they are tried when executing a task.
+Useful if you have colliding task names in different runners.

@@ -26,11 +26,11 @@ impl ScriptsRunner {
         let mut script_names: Vec<String> = Vec::new();
 
         let dir = Path::new(dir);
-        if !dir.exists() {
-            return Ok(script_names);
-        }
 
         let Ok(entries) = fs::read_dir(dir) else {
+            // if we cannot read the directory, we just return an empty list.
+            // Nothing we can do here. Even error reporting during autocomplete
+            // is annoying.
             return Ok(script_names);
         };
 
@@ -40,22 +40,20 @@ impl ScriptsRunner {
             };
 
             let path = entry.path();
-            if path.is_file() {
-                let is_executable = path
-                    .metadata()
-                    .map(|m| m.permissions().mode() & 0o111 != 0)
-                    .unwrap_or(false);
+            let is_executable = path
+                .metadata()
+                .map(|m| m.permissions().mode() & 0o111 != 0)
+                .unwrap_or(false);
 
-                if !is_executable {
-                    continue;
-                }
-
-                let Some(file_name) = path.file_name() else {
-                    continue;
-                };
-
-                script_names.push(file_name.to_string_lossy().to_string());
+            if !is_executable {
+                continue;
             }
+
+            let Some(file_name) = path.file_name() else {
+                continue;
+            };
+
+            script_names.push(file_name.to_string_lossy().to_string());
         }
 
         return Ok(script_names);
@@ -77,10 +75,10 @@ impl Runner for ScriptsRunner {
     }
 
     fn run(&self, task: &str, args: &[String]) -> Result<ExitStatus, String> {
-        eprintln!("[rt] Using ./{}/{}", self.dir, task);
+        eprintln!("[rt] Running script ./{}/{}", self.dir, task);
 
         let fullpath = Path::new(&self.dir).join(task);
         let mut script = Command::new(fullpath);
-        return run_command(script.arg(task).args(args));
+        return run_command(script.args(args));
     }
 }

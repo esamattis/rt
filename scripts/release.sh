@@ -7,6 +7,12 @@ if [ "$(git status . --porcelain)" != "" ]; then
     exit 1
 fi
 
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$current_branch" != "master" ]; then
+    echo "Error: Not on master branch. Please switch to master."
+    exit 1
+fi
+
 cargo test
 
 git push origin

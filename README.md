@@ -17,8 +17,6 @@ The only reason this exists because tab-completion for npm scripts and jakefiles
 is really slow. rt is written using Rust and [SWC](https://swc.rs/) for jakefile
 parsing so it is basically instant. It also saves few key strokes!
 
-But to be honest this project was just an excuse to learn Rust and SWC.
-
 ## Install
 
 Get binary from the [releases page](https://github.com/esamattis/rt/releases)

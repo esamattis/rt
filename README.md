@@ -59,7 +59,7 @@ export RT_RUNNERS=scripts:node_modules/.bin
 
 ## Custom binaries
 
-If you want to have for example different command for executing tasks and the node_module/.bin commands
+If you want to have for example different command for executing tasks and the `node_module/.bin` commands
 you can add a symlink alias to your PATH and configure it with `<capitalized bin name>_RUNNERS`.
 env.
 

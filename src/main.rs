@@ -1,4 +1,4 @@
-use std::{env, process};
+use std::{env, io, process};
 
 mod composer;
 mod jakefile;
@@ -14,49 +14,78 @@ use npm::NpmRunner;
 use runner::Runner;
 use scripts::ScriptsRunner;
 
+use std::io::Write;
+
+trait RawStringWriter {
+    fn str(&mut self, str: &str) -> ();
+    fn strln(&mut self, str: &str) -> ();
+}
+
+impl RawStringWriter for io::Stdout {
+    fn str(&mut self, str: &str) -> () {
+        let _ = self.write(str.as_bytes());
+    }
+
+    fn strln(&mut self, str: &str) -> () {
+        let _ = self.write(str.as_bytes());
+        let _ = self.write("\n".as_bytes());
+    }
+}
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn rt() -> Result<(), String> {
+    let binary_name = env::current_exe()
+        .ok()
+        .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
+        .and_then(|s| s.into_string().ok())
+        .unwrap_or_else(|| "rt".to_string())
+        .to_uppercase();
+
+
     let default = String::new();
     let args: Vec<String> = env::args().collect();
     let arg = args.get(1).unwrap_or(&default);
 
-    let runners_env = env::var("RT_RUNNERS").unwrap_or_default();
+    let runners_env = env::var(format!("{}_RUNNERS", binary_name)).unwrap_or_default();
     let active_runners = runners_env.split(",");
 
     let mut runners: Vec<Box<dyn Runner>> = Vec::new();
 
     for runner in active_runners {
+        let (runner, runner_arg) = runner.split_once(":").unwrap_or((runner, ""));
         match runner {
             "" => {}
             "package.json" => runners.push(Box::new(NpmRunner::new())),
             "jakefile" => runners.push(Box::new(JakeRunner::new())),
             "composer.json" => runners.push(Box::new(ComposerRunner::new())),
-            "scripts:scripts" => runners.push(Box::new(ScriptsRunner::new("scripts".to_string()))),
-            "scripts:tools" => runners.push(Box::new(ScriptsRunner::new("tools".to_string()))),
-            "scripts:bin" => runners.push(Box::new(ScriptsRunner::new("bin".to_string()))),
+            "scripts" => runners.push(Box::new(ScriptsRunner::new(runner_arg.to_string()))),
             _ => eprintln!("Unknown runner '{}' in RT_RUNNERS", runner),
         }
-    }
-
-    // Clear to list all runners if --runners is passed
-    if arg == "--runners" {
-        runners = Vec::new();
     }
 
     if runners.len() == 0 {
         runners.push(Box::new(NpmRunner::new()));
         runners.push(Box::new(JakeRunner::new()));
         runners.push(Box::new(ComposerRunner::new()));
-        runners.push(Box::new(ScriptsRunner::new("scripts".to_string())));
-        runners.push(Box::new(ScriptsRunner::new("tools".to_string())));
-        runners.push(Box::new(ScriptsRunner::new("bin".to_string())));
+        runners.push(Box::new(ScriptsRunner::new("./scripts".to_string())));
+        runners.push(Box::new(ScriptsRunner::new("./tools".to_string())));
+        runners.push(Box::new(ScriptsRunner::new("./bin".to_string())));
     }
 
     if arg == "--runners" {
         for runner in runners {
             println!("{}", runner.name());
         }
+        return Ok(());
+    }
+
+    if arg == "-n" {
+        runners.clear();
+        let mut runner = Box::new(ScriptsRunner::new("node_modules/.bin".to_string()));
+        runner.load()?;
+        runners.push(runner);
+        run_task(&args[2..], &runners)?;
         return Ok(());
     }
 
@@ -134,35 +163,47 @@ fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {
     //       _files .
     //   fi
 
-    println!("local -a _args");
-    println!("_args=($BUFFER)");
-    println!("_argument_count=\"${{#words[@]}}\"");
-    println!("");
+    let mut out = io::stdout();
 
-    println!("if [ \"$_argument_count\" = \"2\" ]; then");
-    println!("    local -a _rt_tasks");
-    print!("    _rt_tasks=(");
+    out.strln(r#"local -a _args"#);
+    out.strln(r#"_args=($BUFFER)"#);
+    out.strln(r#"_argument_count="${#words[@]}""#);
+    out.strln("");
+    out.strln(r#"if [ "$_argument_count" = "3" ] && [ "${words[2]}" = "-n" ]; then"#);
+    out.strln(r#"    local -a _rt_node_tasks"#);
+    out.strln(r#"    _rt_node_tasks=($(ls -1 ./node_modules/.bin))"#);
+    out.strln(r#"    _describe 'node task' _rt_node_tasks"#);
+
+    out.strln(r#"elif [ "$_argument_count" = "2" ]; then"#);
+    out.strln(r#"    local -a _rt_tasks"#);
+    out.str(r#"    _rt_tasks=("#);
     for runner in runners {
         for task in runner.tasks() {
-            let mut escaped = String::new();
-
-            for a_char in task.chars() {
-                if a_char == ':' {
-                    escaped.push('\\');
-                }
-                escaped.push(a_char);
-            }
-
-            print!("'{}:from {}' ", escaped, runner.name());
+            out.str(&format!("'{}:from {}' ", &zsh_escape(task), runner.name()));
         }
     }
-    print!(")");
-    println!("");
-    println!("    _describe 'task' _rt_tasks");
+    out.str(")");
+    out.strln("");
+    out.strln(r#"    _describe 'task' _rt_tasks"#);
 
-    println!("else");
-    println!("    _files .");
-    println!("fi");
+    out.strln("else");
+    out.strln("    _files .");
+    out.strln("fi");
+
+    let _ = out.flush();
+}
+
+fn zsh_escape(task: &str) -> String {
+    let mut escaped = String::new();
+
+    for a_char in task.chars() {
+        if a_char == ':' {
+            escaped.push('\\');
+        }
+        escaped.push(a_char);
+    }
+
+    return escaped;
 }
 
 fn main() {

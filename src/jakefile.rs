@@ -1,13 +1,12 @@
 use std::borrow::Borrow;
 use std::io::ErrorKind;
 use std::path::Path;
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 use swc_common::{sync::Lrc, SourceMap};
 use swc_ecma_ast::{Callee, Expr, Lit, Module, ModuleItem, Stmt};
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
 
 use super::runner::Runner;
-use super::utils::run_command;
 
 fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
     let cm: Lrc<SourceMap> = Default::default();
@@ -133,10 +132,10 @@ impl Runner for JakeRunner {
         return Ok(());
     }
 
-    fn run(&self, task: &str, _args: &[String]) -> Result<ExitStatus, String> {
+    fn run(&self, task: &str, _args: &[String]) -> () {
         let mut jake = Command::new("./node_modules/.bin/jake");
         eprintln!("[rt] using jake");
-        return run_command(jake.arg(task));
+        self.execute(&mut jake.arg(task));
     }
 }
 

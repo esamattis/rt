@@ -78,4 +78,4 @@ export RTN_RUNNERS=scripts:node_modules/.bin
 compdef 'eval "$(rtn --zsh-complete)"' rtn
 ```
 
-Now you can use `rtn` for running node_modules/.bin commands and `rt` for running scripts from package.json and composer.json.
+Now you can use `rtn` for running `node_modules/.bin` commands and `rt` for running scripts from package.json and composer.json.

@@ -1,14 +1,13 @@
 
 # rt – "run task"
 
-rt is a simple wrapper for task / scripts runners with instant tab-completion
-for zsh.
+Instant ZSH autocompleter for npm package.json scripts and other task runners
 
 Supported runners:
 
 - package.json scripts
     - With auto detection for npm, pnpm, yarn 1.0
-- Jake.js
+- Jake.js `jakefile.js` files
 - PHP composer.json scripts
 - Picks executables from `bin`, `scripts` and `tools` directories in the current
   working directory

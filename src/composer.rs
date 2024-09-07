@@ -1,8 +1,6 @@
-use crate::utils::run_command;
-
 use super::runner::Runner;
 use serde_json::Value;
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 use std::{fs, io::ErrorKind};
 
 pub struct ComposerRunner {
@@ -62,9 +60,9 @@ impl Runner for ComposerRunner {
         return Ok(());
     }
 
-    fn run(&self, task: &str, args: &[String]) -> Result<ExitStatus, String> {
+    fn run(&self, task: &str, args: &[String]) -> () {
         eprintln!("[rt] Using composer");
         let mut composer = Command::new("composer");
-        return run_command(composer.arg(task).arg("--").args(args));
+        return self.execute(composer.arg(task).arg("--").args(args));
     }
 }

@@ -1,9 +1,7 @@
-use crate::utils::run_command;
-
 use super::runner::Runner;
 use serde_json::Value;
 use std::path::Path;
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 use std::{fs, io::ErrorKind};
 
 pub struct NpmRunner {
@@ -63,7 +61,7 @@ impl Runner for NpmRunner {
         return Ok(());
     }
 
-    fn run(&self, task: &str, args: &[String]) -> Result<ExitStatus, String> {
+    fn run(&self, task: &str, args: &[String]) -> () {
         // Detect pnpm usage from the pnpm lock file. The ../../ is for
         // packges/* style monorepo
         let is_pnpm =
@@ -72,18 +70,18 @@ impl Runner for NpmRunner {
         if is_pnpm {
             eprintln!("[rt] Using pnpnm");
             let mut pnpm = Command::new("pnpm");
-            return run_command(pnpm.arg("run").arg(task).args(args));
+            return self.execute(pnpm.arg("run").arg(task).args(args));
         }
 
         let is_yarn1 = Path::new("yarn.lock").exists() || Path::new("../../yarn.lock").exists();
         if is_yarn1 {
             eprintln!("[rt] Using  yarn");
             let mut yarn = Command::new("yarn");
-            return run_command(yarn.arg("run").arg(task).args(args));
+            return self.execute(yarn.arg("run").arg(task).args(args));
         }
 
         eprintln!("[rt] Using npm");
         let mut npm = Command::new("npm");
-        return run_command(npm.arg("run").arg(task).arg("--").args(args));
+        return self.execute(npm.arg("run").arg(task).arg("--").args(args));
     }
 }

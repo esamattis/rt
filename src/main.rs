@@ -1,11 +1,14 @@
-use std::{env, io, process};
+use std::{
+    env,
+    io::{self},
+    process,
+};
 
 mod composer;
 mod jakefile;
 mod npm;
 mod runner;
 mod scripts;
-mod utils;
 
 use composer::ComposerRunner;
 use jakefile::JakeRunner;
@@ -41,7 +44,6 @@ fn rt() -> Result<(), String> {
         .and_then(|s| s.into_string().ok())
         .unwrap_or_else(|| "rt".to_string())
         .to_uppercase();
-
 
     let default = String::new();
     let args: Vec<String> = env::args().collect();
@@ -111,7 +113,7 @@ fn rt() -> Result<(), String> {
     if arg == "" {
         for runner in runners {
             for task in runner.tasks() {
-                println!("{}", task);
+                println!("{} -- {}", task, runner.name());
             }
         }
     } else {
@@ -122,27 +124,60 @@ fn rt() -> Result<(), String> {
 }
 
 fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<(), String> {
-    for runner in runners {
-        for task in runner.tasks() {
-            if task.to_string() == args[0] {
-                let res = runner.run(task, &args[1..]);
+    let matching_runners: Vec<&Box<dyn Runner>> = runners
+        .iter()
+        .filter(|runner| runner.tasks().contains(&args[0]))
+        .collect();
 
-                match res {
-                    Ok(exit_code) => {
-                        let code = exit_code.code().unwrap_or(88);
-                        if code != 0 {
-                            process::exit(code);
-                        } else {
-                            return Ok(());
-                        }
-                    }
-                    Err(err) => return Err(err),
-                }
-            }
+    let selected_runner = if matching_runners.len() > 1 {
+        eprintln!("Multiple runners found for task: {}", args[0]);
+
+        for (index, runner) in matching_runners.iter().enumerate() {
+            eprintln!("  {}: {}", index + 1, runner.name());
         }
+
+        let choice = prompt_number(
+            &format!("Select runner (1-{}): ", matching_runners.len()),
+            matching_runners.len(),
+        )?;
+
+        matching_runners.get(choice - 1)
+    } else {
+        matching_runners.get(0)
+    };
+
+    if let Some(runner) = selected_runner {
+        runner.run(&args[0], &args[1..]);
+        return Ok(());
     }
 
     return Err(format!("Unknown task '{}'", args[0]));
+}
+
+fn prompt_number(prompt: &str, max: usize) -> Result<usize, String> {
+    loop {
+        io::stdout()
+            .write(prompt.as_bytes())
+            .map_err(|e| format!("failed to write prompt to stdout: {}", e.to_string()))?;
+
+        io::stdout()
+            .flush()
+            .map_err(|e| format!("failed to flush stdout {}", e.to_string()))?;
+
+        let mut input = String::new();
+        io::stdin()
+            .read_line(&mut input)
+            .map_err(|e| format!("failed to read stdin {}", e.to_string()))?;
+
+        let choice = input.trim().chars().next().unwrap_or('1');
+        if let Some(digit) = choice.to_digit(10) {
+            let digit = digit as usize;
+            if digit <= max {
+                return Ok(digit);
+            }
+        }
+        eprintln!("Invalid choice: {}", choice);
+    }
 }
 
 fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {

@@ -1,10 +1,8 @@
-use crate::utils::run_command;
-
 use super::runner::Runner;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 
 pub struct ScriptsRunner {
     tasks: Vec<String>,
@@ -74,11 +72,11 @@ impl Runner for ScriptsRunner {
         return Ok(());
     }
 
-    fn run(&self, task: &str, args: &[String]) -> Result<ExitStatus, String> {
+    fn run(&self, task: &str, args: &[String]) -> () {
         eprintln!("[rt] Running script ./{}/{}", self.dir, task);
 
         let fullpath = Path::new(&self.dir).join(task);
         let mut script = Command::new(fullpath);
-        return run_command(script.args(args));
+        return self.execute(script.args(args));
     }
 }

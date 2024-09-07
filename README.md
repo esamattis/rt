@@ -39,15 +39,22 @@ In a project type `rt ` and hit the tab key
 ## Configuring
 
 Set `RT_RUNNERS` environment variable to a comma separated list of runners without spaces you
-want to use. List runners with `rt --runners`. By default all
-runners are enabled. The order of the runners is the order they are tried when executing a task.
-Useful if you have colliding task names in different runners.
+want to use.
 
-example
+Available runners
 
-```sh
-export RT_RUNNERS=package.json,composer.json
-```
+ - `package.json`
+ - `jakefile`
+ - `composer.json`
+ - `scripts:<dir>` - picks executables from `<dir>`. Ex. `scripts:bin`
+
+ example
+
+ ```sh
+ export RT_RUNNERS=package.json,composer.json,scripts:./bin
+ ```
+
+List active runners with `rt --runners`
 
 ## Custom scripts
 

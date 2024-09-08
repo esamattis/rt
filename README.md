@@ -25,7 +25,7 @@ and put it to PATH or build from the sources.
 Enable tab-completion by putting this to  `~/.zshrc`:
 
 ```sh
-compdef 'eval "$(rt --zsh-complete)"' rt
+compdef 'eval "$(rt --zsh-complete $LBUFFER $RBUFFER)"' rt
 ```
 
 
@@ -61,25 +61,19 @@ If you want to for example execute scripts from `node_modules/.bin` you can add
 export RT_RUNNERS=scripts:node_modules/.bin
 ```
 
-## Custom binaries
+## Custom Commands
 
-If you want to have for example different command for executing tasks and the `node_module/.bin` commands
-you can add a symlink alias to your PATH and configure it with `<capitalized bin name>_RUNNERS`.
-env.
+If you want to have for example different command for executing tasks and the `node_module/.bin` commands.
+You can use the `--runners-env` flag to configure the runners environment variable being read.
 
-Example
+Example:
 
-Create symlink alias
-
-```
-ln -s $(which rt) /usr/local/bin/rtn
-```
-
-and in your `~/.zshrc` add custom completer and config
+Use `rtn` execute `./node_modules/.bin/` commands:
 
 ```sh
 export RTN_RUNNERS=scripts:node_modules/.bin
-compdef 'eval "$(rtn --zsh-complete)"' rtn
+compdef 'eval "$(rt --runners-env RTN_RUNNERS --zsh-complete $LBUFFER $RBUFFER)"' rtn
+rtn() {
+    rt --runners-env RTN_RUNNERS $@
+}
 ```
-
-Now you can use `rtn` for running `node_modules/.bin` commands and `rt` for running scripts from `package.json` and `composer.json`.

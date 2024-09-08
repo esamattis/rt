@@ -102,7 +102,15 @@ fn rt() -> Result<(), String> {
             // any errors when autocompleting
             let _maybe_error = runner.load();
         }
-        zsh_autocomplete(&runners);
+        if let Some(lbuffer) = args.get(2) {
+            zsh_autocomplete(&runners, lbuffer);
+        } else {
+            return Err(
+                "Using old .zshrc compdef definition. Please review your .zshrc and rt README.md"
+                    .to_string(),
+            );
+        }
+
         return Ok(());
     }
 
@@ -180,50 +188,31 @@ fn prompt_number(prompt: &str, max: usize) -> Result<usize, String> {
     }
 }
 
-fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>) {
+fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>, lbuffer: &str) {
     if runners.len() == 0 {
         return;
     }
 
-    // Generating something like:
-    //   local -a _args
-    //   _args=($BUFFER)
-    //   _argument_count="${#words[@]}"
-
-    //   if [ "$_argument_count" = "2" ]; then
-    //       local -a _rt_tasks
-    //       _rt_tasks=('comman1:from npm' 'comman2:from jake' )
-    //       _describe 'task' _rt_tasks
-    //   else
-    //       _files .
-    //   fi
+    let arg_count = lbuffer.split_whitespace().count();
 
     let mut out = io::stdout();
 
-    out.strln(r#"local -a _args"#);
-    out.strln(r#"_args=($BUFFER)"#);
-    out.strln(r#"_argument_count="${#words[@]}""#);
-    out.strln("");
-    out.strln(r#"if [ "$_argument_count" = "3" ] && [ "${words[2]}" = "-n" ]; then"#);
-    out.strln(r#"    local -a _rt_node_tasks"#);
-    out.strln(r#"    _rt_node_tasks=($(ls -1 ./node_modules/.bin))"#);
-    out.strln(r#"    _describe 'node task' _rt_node_tasks"#);
-
-    out.strln(r#"elif [ "$_argument_count" = "2" ]; then"#);
-    out.strln(r#"    local -a _rt_tasks"#);
-    out.str(r#"    _rt_tasks=("#);
-    for runner in runners {
-        for task in runner.tasks() {
-            out.str(&format!("'{}:from {}' ", &zsh_escape(task), runner.name()));
+    // rt build<space><tab> aka 'rt build '
+    // or
+    // rt build tar<tab> aka 'rt build tar'
+    if (arg_count > 1 && lbuffer.ends_with(' ')) || arg_count > 2 {
+        out.strln("_files .");
+    } else {
+        out.strln(r#"local -a _rt_tasks"#);
+        out.str(r#"_rt_tasks=("#);
+        for runner in runners {
+            for task in runner.tasks() {
+                out.str(&format!("'{}:from {}' ", &zsh_escape(task), runner.name()));
+            }
         }
+        out.strln(")");
+        out.strln(r#"_describe 'task' _rt_tasks"#);
     }
-    out.str(")");
-    out.strln("");
-    out.strln(r#"    _describe 'task' _rt_tasks"#);
-
-    out.strln("else");
-    out.strln("    _files .");
-    out.strln("fi");
 
     let _ = out.flush();
 }

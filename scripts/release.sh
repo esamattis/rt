@@ -26,8 +26,12 @@ sed -i '' "s/^version = \".*\"/version = \"$next_version\"/" Cargo.toml
 
 echo "Updated Cargo.toml with version $next_version"
 
+cargo build --release
+
+./target/release/rt --version
+
 git add Cargo.toml Cargo.lock
-git commit -m "Bump version to $next_version"
+git commit -m "Release v$next_version"
 
 git tag -a "v$next_version" -m "Release v$next_version"
 

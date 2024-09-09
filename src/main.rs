@@ -219,7 +219,7 @@ fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>, lbuffer: &str) {
         out.strln("_files .");
     } else {
         out.strln(r#"local -a _rt_tasks"#);
-        out.str(r#"_rt_tasks=("#);
+        out.str(r#"_rt_tasks=( "#);
         for runner in runners {
             for task in runner.tasks() {
                 out.str(&format!("'{}:from {}' ", &zsh_escape(task), runner.name()));

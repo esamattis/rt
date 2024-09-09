@@ -77,3 +77,13 @@ rtn() {
     rt --runners-env RTN_RUNNERS $@
 }
 ```
+
+## Project Config
+
+You may add a `.rtenv` file to your projects. When `rt` finds it from the current working it will read the environment variables from it.
+
+Ex. `.rtenv`:
+
+```sh
+RT_RUNNERS=package.json,composer.json,scripts:./bin
+```

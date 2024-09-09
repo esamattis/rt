@@ -136,8 +136,15 @@ fn rt() -> Result<(), String> {
 
     if arg == "" {
         for runner in runners {
+            let mut tasks = runner.tasks().clone();
+            if tasks.len() == 0 {
+                continue;
+            }
+            tasks.sort();
+
+            println!("#{}:", runner.name());
             for task in runner.tasks() {
-                println!("{} -- {}", task, runner.name());
+                println!("  {} ", task);
             }
         }
     } else {

@@ -73,7 +73,7 @@ impl Runner for ScriptsRunner {
     }
 
     fn run(&self, task: &str, args: &[String]) -> () {
-        eprintln!("[rt] Running script ./{}/{}", self.dir, task);
+        eprintln!("[rt] Running script {}/{}", self.dir, task);
 
         let fullpath = Path::new(&self.dir).join(task);
         let mut script = Command::new(fullpath);

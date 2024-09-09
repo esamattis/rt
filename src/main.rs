@@ -105,15 +105,6 @@ fn rt() -> Result<(), String> {
         return Ok(());
     }
 
-    if arg == "-n" {
-        runners.clear();
-        let mut runner = Box::new(ScriptsRunner::new("node_modules/.bin".to_string()));
-        runner.load()?;
-        runners.push(runner);
-        run_task(&args[2..], &runners)?;
-        return Ok(());
-    }
-
     if arg == "--version" || arg == "-v" || arg == "-V" {
         println!("{}", VERSION);
         return Ok(());

@@ -87,3 +87,7 @@ Ex. `.rtenv`:
 ```sh
 RT_RUNNERS=package.json,composer.json,scripts:./bin
 ```
+
+## Fuzzy Matching
+
+Combine with [fzf](https://github.com/junegunn/fzf) and [fzf-tab](https://github.com/Aloxaf/fzf-tab) for awesome fuzzy matching experience 🔥

@@ -5,15 +5,16 @@ use std::{
 };
 
 mod composer;
+mod envfile;
 mod jakefile;
 mod npm;
 mod runner;
 mod scripts;
 
 use composer::ComposerRunner;
+use envfile::EnvFile;
 use jakefile::JakeRunner;
 use npm::NpmRunner;
-
 use runner::Runner;
 use scripts::ScriptsRunner;
 
@@ -43,7 +44,7 @@ fn rt() -> Result<(), String> {
 
     let mut runners_env_name = args.get(1).zip(args.get(2)).and_then(|(arg1, arg2)| {
         if arg1 == "--runners-env" {
-            Some(arg2.to_uppercase())
+            Some(arg2.to_string())
         } else {
             None
         }
@@ -61,16 +62,20 @@ fn rt() -> Result<(), String> {
         runners_env_name = env::var(format!("{}_RUNNERS", binary_name)).ok();
     }
 
-    let arg = args.get(1).unwrap_or(&default);
+    let runners_env_name = runners_env_name.unwrap_or_else(|| "RT_RUNNERS".to_string());
+    let mut active_runners = env::var(&runners_env_name).unwrap_or_default();
 
-    let runners_env =
-        env::var(runners_env_name.unwrap_or("RT_RUNNERS".to_string())).unwrap_or_default();
-
-    let active_runners = runners_env.split(",");
+    // Get project overrides from the .rtenv file in the current working directory
+    let envfile = EnvFile::from_file(".rtenv");
+    if let Ok(envfile) = envfile {
+        if let Some(local) = envfile.get(&runners_env_name) {
+            active_runners = local.to_string();
+        }
+    }
 
     let mut runners: Vec<Box<dyn Runner>> = Vec::new();
 
-    for runner in active_runners {
+    for runner in active_runners.split(",") {
         let (runner, runner_arg) = runner.split_once(":").unwrap_or((runner, ""));
         match runner {
             "" => {}
@@ -78,7 +83,7 @@ fn rt() -> Result<(), String> {
             "jakefile" => runners.push(Box::new(JakeRunner::new())),
             "composer.json" => runners.push(Box::new(ComposerRunner::new())),
             "scripts" => runners.push(Box::new(ScriptsRunner::new(runner_arg.to_string()))),
-            _ => eprintln!("Unknown runner '{}' in RT_RUNNERS", runner),
+            _ => eprintln!("Unknown runner configured: '{}'", runner),
         }
     }
 
@@ -90,6 +95,8 @@ fn rt() -> Result<(), String> {
         runners.push(Box::new(ScriptsRunner::new("./tools".to_string())));
         runners.push(Box::new(ScriptsRunner::new("./bin".to_string())));
     }
+
+    let arg = args.get(1).unwrap_or(&default);
 
     if arg == "--runners" {
         for runner in runners {

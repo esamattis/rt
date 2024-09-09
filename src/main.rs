@@ -27,12 +27,12 @@ trait RawStringWriter {
 
 impl RawStringWriter for io::Stdout {
     fn str(&mut self, str: &str) -> () {
-        let _ = self.write(str.as_bytes());
+        self.write(str.as_bytes()).ok();
     }
 
     fn strln(&mut self, str: &str) -> () {
-        let _ = self.write(str.as_bytes());
-        let _ = self.write("\n".as_bytes());
+        self.write(str.as_bytes()).ok();
+        self.write("\n".as_bytes()).ok();
     }
 }
 
@@ -114,7 +114,7 @@ fn rt() -> Result<(), String> {
         for runner in runners.iter_mut() {
             // Silence any loading errors intentionally. We do not want to see
             // any errors when autocompleting
-            let _maybe_error = runner.load();
+            runner.load().ok();
         }
         if let Some(lbuffer) = args.get(2) {
             zsh_autocomplete(&runners, lbuffer);
@@ -235,7 +235,7 @@ fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>, lbuffer: &str) {
         out.strln(r#"_describe 'task' _rt_tasks"#);
     }
 
-    let _ = out.flush();
+    out.flush().ok();
 }
 
 fn zsh_escape(task: &str) -> String {

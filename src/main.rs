@@ -42,9 +42,11 @@ fn rt() -> Result<(), String> {
     let default = String::new();
     let mut args: Vec<String> = env::args().collect();
 
-    let mut runners_env_name = args.get(1).zip(args.get(2)).and_then(|(arg1, arg2)| {
-        if arg1 == "--runners-env" {
-            Some(arg2.to_string())
+    let env_flag = args.get(1).zip(args.get(2));
+
+    let runners_env_name = env_flag.and_then(|(flag, value)| {
+        if flag == "--runners-env" {
+            Some(value.to_string())
         } else {
             None
         }
@@ -52,14 +54,6 @@ fn rt() -> Result<(), String> {
 
     if runners_env_name.is_some() {
         args.drain(1..3);
-    } else {
-        let binary_name = env::current_exe()
-            .ok()
-            .and_then(|pb| pb.file_name().map(|s| s.to_os_string()))
-            .and_then(|s| s.into_string().ok())
-            .unwrap_or_else(|| "rt".to_string())
-            .to_uppercase();
-        runners_env_name = env::var(format!("{}_RUNNERS", binary_name)).ok();
     }
 
     let runners_env_name = runners_env_name.unwrap_or_else(|| "RT_RUNNERS".to_string());

@@ -3,6 +3,13 @@ name = "rt"
 version = "6.0.0"
 edition = "2018"
 
+[profile.release]
+# Smaller binaries https://github.com/johnthagen/min-sized-rust
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+
 [dependencies]
 serde_json = "1.0"
 swc_common = "0.37.5"

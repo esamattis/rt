@@ -39,6 +39,9 @@ fn get_completion_items<'a>(
     runners: &'a Vec<Box<dyn Runner>>,
     lbuffer: &str,
 ) -> CompletionItems<'a> {
+    let lbuffer = lbuffer.split("&&").last().unwrap_or(lbuffer).trim();
+    let lbuffer = lbuffer.split(";").last().unwrap_or(lbuffer).trim();
+
     let arg_count = lbuffer.split_whitespace().count();
 
     // rt build<space><tab> aka 'rt build '
@@ -154,5 +157,51 @@ mod tests {
                 ("runner2", "foobar")
             ]
         );
+    }
+
+    #[test]
+    fn test_combined_with_other_commands() {
+        let runner1 = Box::new(TestRunner::new(
+            "runner1".to_string(),
+            vec!["foo".to_string(), "bar".to_string()],
+        ));
+
+        let runners: Vec<Box<dyn Runner>> = vec![runner1];
+
+        let result = get_completion_items(&runners, "ls && rt fo");
+        let CompletionItems::Tasks(tasks) = result else {
+            panic!("Expected CompletionItems::Tasks");
+        };
+        assert_eq!(tasks.len(), 2);
+
+        let result = get_completion_items(&runners, "ls && ls && rt fo");
+        let CompletionItems::Tasks(tasks) = result else {
+            panic!("Expected CompletionItems::Tasks");
+        };
+        assert_eq!(tasks.len(), 2);
+
+        let result = get_completion_items(&runners, "ls&&rt fo");
+        let CompletionItems::Tasks(tasks) = result else {
+            panic!("Expected CompletionItems::Tasks");
+        };
+        assert_eq!(tasks.len(), 2);
+
+        let result = get_completion_items(&runners, "ls;rt fo");
+        let CompletionItems::Tasks(tasks) = result else {
+            panic!("Expected CompletionItems::Tasks");
+        };
+        assert_eq!(tasks.len(), 2);
+
+        let result = get_completion_items(&runners, "ls; rt fo");
+        let CompletionItems::Tasks(tasks) = result else {
+            panic!("Expected CompletionItems::Tasks");
+        };
+        assert_eq!(tasks.len(), 2);
+
+        let result = get_completion_items(&runners, "ls ; rt fo");
+        let CompletionItems::Tasks(tasks) = result else {
+            panic!("Expected CompletionItems::Tasks");
+        };
+        assert_eq!(tasks.len(), 2);
     }
 }

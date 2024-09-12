@@ -39,8 +39,8 @@ fn get_completion_items<'a>(
     runners: &'a Vec<Box<dyn Runner>>,
     lbuffer: &str,
 ) -> CompletionItems<'a> {
-    let lbuffer = lbuffer.split("&&").last().unwrap_or(lbuffer).trim();
-    let lbuffer = lbuffer.split(";").last().unwrap_or(lbuffer).trim();
+    let lbuffer = lbuffer.split("&&").last().unwrap_or(lbuffer);
+    let lbuffer = lbuffer.split(";").last().unwrap_or(lbuffer);
 
     let arg_count = lbuffer.split_whitespace().count();
 

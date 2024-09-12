@@ -10,6 +10,7 @@ mod jakefile;
 mod npm;
 mod runner;
 mod scripts;
+mod zsh_autocomplete;
 
 use composer::ComposerRunner;
 use envfile::EnvFile;
@@ -19,22 +20,6 @@ use runner::Runner;
 use scripts::ScriptsRunner;
 
 use std::io::Write;
-
-trait RawStringWriter {
-    fn str(&mut self, str: &str) -> ();
-    fn strln(&mut self, str: &str) -> ();
-}
-
-impl RawStringWriter for io::Stdout {
-    fn str(&mut self, str: &str) -> () {
-        self.write(str.as_bytes()).ok();
-    }
-
-    fn strln(&mut self, str: &str) -> () {
-        self.write(str.as_bytes()).ok();
-        self.write("\n".as_bytes()).ok();
-    }
-}
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -110,8 +95,17 @@ fn rt() -> Result<(), String> {
             // any errors when autocompleting
             runner.load().ok();
         }
+
         if let Some(lbuffer) = args.get(2) {
-            zsh_autocomplete(&runners, lbuffer);
+            let mut out = io::stdout();
+            let completion = zsh_autocomplete::get_zsh_autocompletion(
+                &runners,
+                lbuffer,
+                args.get(3).unwrap_or(&"".to_string()),
+            );
+
+            out.write(completion.as_bytes()).ok();
+            out.flush().ok();
         } else {
             return Err(
                 "Using old .zshrc compdef definition. Please review your .zshrc and rt README.md"
@@ -180,7 +174,7 @@ fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<(), Strin
 fn prompt_number(prompt: &str, max: usize) -> Result<usize, String> {
     let mut out = io::stdout();
     loop {
-        out.str(prompt);
+        out.write(prompt.as_bytes()).ok();
         out.flush().ok();
 
         let mut input = String::new();
@@ -197,48 +191,6 @@ fn prompt_number(prompt: &str, max: usize) -> Result<usize, String> {
         }
         eprintln!("Invalid choice: {}", choice);
     }
-}
-
-fn zsh_autocomplete(runners: &Vec<Box<dyn Runner>>, lbuffer: &str) {
-    if runners.len() == 0 {
-        return;
-    }
-
-    let arg_count = lbuffer.split_whitespace().count();
-
-    let mut out = io::stdout();
-
-    // rt build<space><tab> aka 'rt build '
-    // or
-    // rt build tar<tab> aka 'rt build tar'
-    if (arg_count > 1 && lbuffer.ends_with(' ')) || arg_count > 2 {
-        out.strln("_files .");
-    } else {
-        out.strln(r#"local -a _rt_tasks"#);
-        out.str(r#"_rt_tasks=( "#);
-        for runner in runners {
-            for task in runner.tasks() {
-                out.str(&format!("'{}:from {}' ", &zsh_escape(task), runner.name()));
-            }
-        }
-        out.strln(")");
-        out.strln(r#"_describe 'task' _rt_tasks"#);
-    }
-
-    out.flush().ok();
-}
-
-fn zsh_escape(task: &str) -> String {
-    let mut escaped = String::new();
-
-    for a_char in task.chars() {
-        if a_char == ':' {
-            escaped.push('\\');
-        }
-        escaped.push(a_char);
-    }
-
-    return escaped;
 }
 
 fn main() {

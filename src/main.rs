@@ -178,14 +178,10 @@ fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<(), Strin
 }
 
 fn prompt_number(prompt: &str, max: usize) -> Result<usize, String> {
+    let mut out = io::stdout();
     loop {
-        io::stdout()
-            .write(prompt.as_bytes())
-            .map_err(|e| format!("failed to write prompt to stdout: {}", e.to_string()))?;
-
-        io::stdout()
-            .flush()
-            .map_err(|e| format!("failed to flush stdout {}", e.to_string()))?;
+        out.str(prompt);
+        out.flush().ok();
 
         let mut input = String::new();
         io::stdin()

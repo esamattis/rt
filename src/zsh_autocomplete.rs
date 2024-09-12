@@ -7,7 +7,7 @@ pub enum CompletionItems<'a> {
     Tasks(TaskList<'a>),
 }
 
-fn get_zsh_autocomplete_code(items: CompletionItems) -> String {
+fn get_zsh_autocomplete_code(items: &CompletionItems) -> String {
     let mut out = String::new();
 
     let tasks = match items {
@@ -81,7 +81,7 @@ pub fn get_zsh_autocompletion(
     _rbuffer: &str,
 ) -> String {
     let items = get_completion_items(runners, lbuffer);
-    return get_zsh_autocomplete_code(items);
+    return get_zsh_autocomplete_code(&items);
 }
 
 #[cfg(test)]

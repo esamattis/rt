@@ -1,4 +1,5 @@
 use super::runner::Runner;
+use anyhow::{bail, Context, Result};
 use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
@@ -13,7 +14,7 @@ impl NpmRunner {
         return NpmRunner { tasks: Vec::new() };
     }
 
-    fn read_package_json() -> Result<Vec<String>, String> {
+    fn read_package_json() -> Result<Vec<String>> {
         let content = fs::read_to_string("package.json");
         let mut script_names: Vec<String> = Vec::new();
 
@@ -24,13 +25,11 @@ impl NpmRunner {
                     return Ok(script_names);
                 }
 
-                return Err(format!("Failed to read package.json: {}", e.to_string()));
+                bail!("Failed to read package.json: {}", e.to_string());
             }
         };
 
-        let json: Value = serde_json::from_str(&content).map_err(|e| {
-            return format!("Failed to parse package.json: {:?}", e);
-        })?;
+        let json: Value = serde_json::from_str(&content).context("failed to parse package.json")?;
 
         let Some(scripts) = json["scripts"].as_object() else {
             return Ok(script_names);
@@ -55,13 +54,13 @@ impl Runner for NpmRunner {
         return &self.tasks;
     }
 
-    fn load(&mut self) -> Result<(), String> {
+    fn load(&mut self) -> Result<()> {
         let scripts = NpmRunner::read_package_json()?;
         self.tasks = scripts;
         return Ok(());
     }
 
-    fn run(&self, task: &str, args: &[String]) -> () {
+    fn run(&self, task: &str, args: &[String]) -> Result<i32> {
         // Detect pnpm usage from the pnpm lock file. The ../../ is for
         // packges/* style monorepo
         let is_pnpm =

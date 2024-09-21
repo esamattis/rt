@@ -1,4 +1,5 @@
 use super::runner::Runner;
+use anyhow::{bail, Context, Result};
 use serde_json::Value;
 use std::process::Command;
 use std::{fs, io::ErrorKind};
@@ -12,7 +13,7 @@ impl ComposerRunner {
         return ComposerRunner { tasks: Vec::new() };
     }
 
-    fn read_composer_json() -> Result<Vec<String>, String> {
+    fn read_composer_json() -> Result<Vec<String>> {
         let content = fs::read_to_string("composer.json");
         let mut script_names: Vec<String> = Vec::new();
 
@@ -23,12 +24,12 @@ impl ComposerRunner {
                     return Ok(script_names);
                 }
 
-                return Err(format!("Failed to read composer.json: {}", e.to_string()));
+                bail!("Failed to read composer.json: {}", e.to_string());
             }
         };
 
-        let json: Value = serde_json::from_str(&content).map_err(|e| {
-            return format!("Failed to parse composer.json: {:?}", e);
+        let json: Value = serde_json::from_str(&content).with_context(|| {
+            return format!("Failed to parse composer.json");
         })?;
 
         let Some(scripts) = json["scripts"].as_object() else {
@@ -54,13 +55,13 @@ impl Runner for ComposerRunner {
         return &self.tasks;
     }
 
-    fn load(&mut self) -> Result<(), String> {
+    fn load(&mut self) -> Result<()> {
         let scripts = ComposerRunner::read_composer_json()?;
         self.tasks = scripts;
         return Ok(());
     }
 
-    fn run(&self, task: &str, args: &[String]) -> () {
+    fn run(&self, task: &str, args: &[String]) -> Result<i32> {
         eprintln!("[rt] Using composer");
         let mut composer = Command::new("composer");
         return self.execute(composer.arg(task).arg("--").args(args));

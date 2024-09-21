@@ -1,38 +1,22 @@
-use std::process::{self, Command};
+use anyhow::{anyhow, Context, Result};
+use std::process::Command;
 
 pub trait Runner {
     fn name(&self) -> &str;
     fn tasks(&self) -> &Vec<String>;
-    fn load(&mut self) -> Result<(), String>;
-    fn run(&self, task: &str, args: &[String]) -> ();
-    fn execute(&self, cmd: &mut Command) -> () {
-        match cmd.spawn() {
-            Ok(mut child) => {
-                let res = child.wait();
+    fn load(&mut self) -> Result<()>;
+    fn run(&self, task: &str, args: &[String]) -> Result<i32>;
+    fn execute(&self, cmd: &mut Command) -> Result<i32> {
+        let mut child = cmd
+            .spawn()
+            .with_context(|| format!("Failed to spawn {:?}", cmd.get_program()))?;
 
-                match res {
-                    Ok(code) => {
-                        process::exit(code.code().unwrap_or(88));
-                    }
-                    Err(e) => {
-                        eprintln!(
-                            "[rt] Failed waiting command {:?}: {}",
-                            cmd.get_program(),
-                            e.to_string()
-                        );
-                        process::exit(88);
-                    }
-                }
-            }
+        let exit_status = child
+            .wait()
+            .with_context(|| format!("Failed to wait for command {:?}", cmd.get_program()))?;
 
-            Err(e) => {
-                eprintln!(
-                    "[rt] Failed to spawn {:?}: {}",
-                    cmd.get_program(),
-                    e.to_string()
-                );
-                process::exit(88);
-            }
-        }
+        return exit_status
+            .code()
+            .ok_or_else(|| anyhow!("Failed to get exit code for {:?}", cmd.get_program()));
     }
 }

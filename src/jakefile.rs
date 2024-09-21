@@ -1,3 +1,4 @@
+use anyhow::{anyhow, bail, Context, Result};
 use std::borrow::Borrow;
 use std::io::ErrorKind;
 use std::path::Path;
@@ -8,7 +9,7 @@ use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
 
 use super::runner::Runner;
 
-fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
+fn parse_as_swc_module(path: &str) -> Result<Option<Module>> {
     let cm: Lrc<SourceMap> = Default::default();
 
     let maybe_file = cm.load_file(Path::new(path));
@@ -19,7 +20,7 @@ fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
             if ErrorKind::NotFound == e.kind() {
                 return Ok(None);
             }
-            return Err(format!("Failed to read {}: {}", path, e.to_string()));
+            bail!("Failed to read {}: {}", path, e.to_string());
         }
     };
 
@@ -34,18 +35,13 @@ fn parse_as_swc_module(path: &str) -> Result<Option<Module>, String> {
 
     let mut parser = Parser::new_from(lexer);
 
-    // TODO: what errors are these?
-    // for e in parser.take_errors() {
-    //     // e.into_diagnostic(&handler).emit();
-    // }
-
-    let module = parser.parse_module().map_err(|e| {
-        return format!("Failed to parse '{}' because: {:?}", path, e);
-        // Unrecoverable fatal error occurred
-        // e.into_diagnostic(&handler).emit()
-    })?;
-
-    return Ok(Some(module));
+    return match parser.parse_module() {
+        Ok(m) => Ok(Some(m)),
+        Err(e) => {
+            return Err(anyhow!("Parse error {:?}", e))
+                .context(format!("Failed to parse {}", path));
+        }
+    };
 }
 
 fn get_task_fn_calls(module: &Module) -> Vec<String> {
@@ -122,7 +118,7 @@ impl Runner for JakeRunner {
         return &self.tasks;
     }
 
-    fn load(&mut self) -> Result<(), String> {
+    fn load(&mut self) -> Result<()> {
         let maybe_module = parse_as_swc_module("jakefile.js")?;
 
         if let Some(module) = maybe_module {
@@ -132,10 +128,10 @@ impl Runner for JakeRunner {
         return Ok(());
     }
 
-    fn run(&self, task: &str, _args: &[String]) -> () {
+    fn run(&self, task: &str, _args: &[String]) -> Result<i32> {
         let mut jake = Command::new("./node_modules/.bin/jake");
         eprintln!("[rt] using jake");
-        self.execute(&mut jake.arg(task));
+        return self.execute(&mut jake.arg(task));
     }
 }
 

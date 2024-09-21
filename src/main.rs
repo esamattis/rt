@@ -12,6 +12,7 @@ mod runner;
 mod scripts;
 mod zsh_autocomplete;
 
+use anyhow::{bail, Context, Result};
 use composer::ComposerRunner;
 use envfile::EnvFile;
 use jakefile::JakeRunner;
@@ -23,7 +24,7 @@ use std::io::Write;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn rt() -> Result<(), String> {
+fn rt() -> Result<()> {
     let default = String::new();
     let mut args: Vec<String> = env::args().collect();
 
@@ -107,20 +108,29 @@ fn rt() -> Result<(), String> {
             out.write(completion.as_bytes()).ok();
             out.flush().ok();
         } else {
-            return Err(
+            bail!(
                 "Using old .zshrc compdef definition. Please review your .zshrc and rt README.md"
-                    .to_string(),
             );
         }
 
         return Ok(());
     }
 
+    let mut errors: Vec<anyhow::Error> = Vec::new();
+
     for runner in runners.iter_mut() {
-        runner.load()?;
+        if let Err(e) = runner.load() {
+            errors.push(e.context(format!("loading runner '{}'", runner.name())));
+        }
     }
 
     if arg == "" {
+        for error in &errors {
+            eprintln!("");
+            print_anyhow_error(error);
+            eprintln!("");
+        }
+
         for runner in runners {
             let mut tasks = runner.tasks().clone();
             if tasks.len() == 0 {
@@ -133,6 +143,10 @@ fn rt() -> Result<(), String> {
                 println!("  {} ", task);
             }
         }
+
+        if errors.len() > 0 {
+            bail!("Some runners failed to load");
+        }
     } else {
         run_task(&args[1..], &runners)?;
     }
@@ -140,7 +154,7 @@ fn rt() -> Result<(), String> {
     return Ok(());
 }
 
-fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<(), String> {
+fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<()> {
     let matching_runners: Vec<&Box<dyn Runner>> = runners
         .iter()
         .filter(|runner| runner.tasks().contains(&args[0]))
@@ -156,7 +170,8 @@ fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<(), Strin
         let choice = prompt_number(
             &format!("Select runner (1-{}): ", matching_runners.len()),
             matching_runners.len(),
-        )?;
+        )
+        .context("reading user input failed")?;
 
         matching_runners.get(choice - 1)
     } else {
@@ -164,23 +179,23 @@ fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<(), Strin
     };
 
     if let Some(runner) = selected_runner {
-        runner.run(&args[0], &args[1..]);
+        runner.run(&args[0], &args[1..])?;
         return Ok(());
     }
 
-    return Err(format!("Unknown task '{}'", args[0]));
+    bail!("Unknown task '{}'", args[0]);
 }
 
-fn prompt_number(prompt: &str, max: usize) -> Result<usize, String> {
+fn prompt_number(prompt: &str, max: usize) -> Result<usize> {
     let mut out = io::stdout();
     loop {
-        out.write(prompt.as_bytes()).ok();
-        out.flush().ok();
+        out.write(prompt.as_bytes())?;
+        out.flush()?;
 
         let mut input = String::new();
         io::stdin()
             .read_line(&mut input)
-            .map_err(|e| format!("failed to read stdin {}", e.to_string()))?;
+            .context("failed to read stdin")?;
 
         let choice = input.trim().chars().next().unwrap_or('1');
         if let Some(digit) = choice.to_digit(10) {
@@ -193,11 +208,20 @@ fn prompt_number(prompt: &str, max: usize) -> Result<usize, String> {
     }
 }
 
+fn print_anyhow_error(e: &anyhow::Error) {
+    eprintln!("Error: {}", e);
+    let mut source = e.source();
+    while let Some(err) = source {
+        eprintln!("Caused by: {}", err);
+        source = err.source();
+    }
+}
+
 fn main() {
     let res = rt();
 
     if let Err(e) = res {
-        eprintln!("{}", e.to_string());
+        print_anyhow_error(&e);
         process::exit(1)
     }
 }

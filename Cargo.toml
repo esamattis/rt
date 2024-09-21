@@ -11,6 +11,7 @@ codegen-units = 1
 panic = "abort"
 
 [dependencies]
+anyhow = "1.0.89"
 serde_json = "1.0"
 swc_common = "0.37.5"
 swc_ecma_ast = "0.118.2"

@@ -1,4 +1,5 @@
 use super::runner::Runner;
+use anyhow::{Context, Result};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -20,16 +21,20 @@ impl ScriptsRunner {
         };
     }
 
-    fn read_scripts(dir: &str) -> Result<Vec<String>, String> {
+    fn read_scripts(dir: &str) -> Result<Vec<String>> {
         let mut script_names: Vec<String> = Vec::new();
 
         let dir = Path::new(dir);
 
-        let Ok(entries) = fs::read_dir(dir) else {
-            // if we cannot read the directory, we just return an empty list.
-            // Nothing we can do here. Even error reporting during autocomplete
-            // is annoying.
-            return Ok(script_names);
+        let entries = match fs::read_dir(dir) {
+            Ok(entries) => entries,
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    return Ok(script_names);
+                }
+
+                anyhow::bail!(e);
+            }
         };
 
         for entry in entries {
@@ -67,12 +72,14 @@ impl Runner for ScriptsRunner {
         return &self.tasks;
     }
 
-    fn load(&mut self) -> Result<(), String> {
-        self.tasks = ScriptsRunner::read_scripts(&self.dir)?;
+    fn load(&mut self) -> Result<()> {
+        self.tasks = ScriptsRunner::read_scripts(&self.dir)
+            .with_context(|| format!("Failed to read directory {}", self.dir))?;
+
         return Ok(());
     }
 
-    fn run(&self, task: &str, args: &[String]) -> () {
+    fn run(&self, task: &str, args: &[String]) -> Result<i32> {
         eprintln!("[rt] Running script {}/{}", self.dir, task);
 
         let fullpath = Path::new(&self.dir).join(task);

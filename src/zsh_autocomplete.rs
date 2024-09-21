@@ -87,6 +87,7 @@ pub fn get_zsh_autocompletion(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
     pub struct TestRunner {
         tasks: Vec<String>,
         name: String,
@@ -107,11 +108,13 @@ mod tests {
             return &self.tasks;
         }
 
-        fn load(&mut self) -> Result<(), String> {
+        fn load(&mut self) -> Result<()> {
             return Ok(());
         }
 
-        fn run(&self, _task: &str, _args: &[String]) -> () {}
+        fn run(&self, _task: &str, _args: &[String]) -> Result<i32> {
+            return Ok(0);
+        }
     }
 
     #[test]

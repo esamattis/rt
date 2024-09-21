@@ -31,7 +31,9 @@ compdef 'eval "$(rt --zsh-complete $LBUFFER $RBUFFER)"' rt
 
 ## Usage
 
-In a project type `rt ` and hit the tab key
+In a project type `rt ` and hit the tab key.
+
+Just type `rt` to list available tasks and any possible errors.
 
 ## Configuring
 

@@ -25,11 +25,11 @@ impl NpmRunner {
                     return Ok(script_names);
                 }
 
-                bail!("Failed to read package.json: {}", e.to_string());
+                bail!(e);
             }
         };
 
-        let json: Value = serde_json::from_str(&content).context("failed to parse package.json")?;
+        let json: Value = serde_json::from_str(&content).context("Failed to parse JSON")?;
 
         let Some(scripts) = json["scripts"].as_object() else {
             return Ok(script_names);
@@ -55,7 +55,7 @@ impl Runner for NpmRunner {
     }
 
     fn load(&mut self) -> Result<()> {
-        let scripts = NpmRunner::read_package_json()?;
+        let scripts = NpmRunner::read_package_json().context("Failed to read package.json")?;
         self.tasks = scripts;
         return Ok(());
     }

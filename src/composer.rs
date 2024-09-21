@@ -24,13 +24,11 @@ impl ComposerRunner {
                     return Ok(script_names);
                 }
 
-                bail!("Failed to read composer.json: {}", e.to_string());
+                bail!(e);
             }
         };
 
-        let json: Value = serde_json::from_str(&content).with_context(|| {
-            return format!("Failed to parse composer.json");
-        })?;
+        let json: Value = serde_json::from_str(&content).context("Failed to parse JSON")?;
 
         let Some(scripts) = json["scripts"].as_object() else {
             return Ok(script_names);
@@ -56,7 +54,8 @@ impl Runner for ComposerRunner {
     }
 
     fn load(&mut self) -> Result<()> {
-        let scripts = ComposerRunner::read_composer_json()?;
+        let scripts =
+            ComposerRunner::read_composer_json().context("Failed to read composer.json")?;
         self.tasks = scripts;
         return Ok(());
     }

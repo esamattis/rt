@@ -24,7 +24,7 @@ use std::io::Write;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn rt() -> Result<()> {
+fn rt() -> Result<i32> {
     let default = String::new();
     let mut args: Vec<String> = env::args().collect();
 
@@ -82,12 +82,12 @@ fn rt() -> Result<()> {
         for runner in runners {
             println!("{}", runner.name());
         }
-        return Ok(());
+        return Ok(0);
     }
 
     if arg == "--version" || arg == "-v" || arg == "-V" {
         println!("{}", VERSION);
-        return Ok(());
+        return Ok(0);
     }
 
     if arg == "--zsh-complete" {
@@ -113,7 +113,7 @@ fn rt() -> Result<()> {
             );
         }
 
-        return Ok(());
+        return Ok(0);
     }
 
     let mut errors: Vec<anyhow::Error> = Vec::new();
@@ -148,13 +148,13 @@ fn rt() -> Result<()> {
             bail!("Some runners failed to load");
         }
     } else {
-        run_task(&args[1..], &runners)?;
+        return run_task(&args[1..], &runners);
     }
 
-    return Ok(());
+    return Ok(0);
 }
 
-fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<()> {
+fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<i32> {
     let matching_runners: Vec<&Box<dyn Runner>> = runners
         .iter()
         .filter(|runner| runner.tasks().contains(&args[0]))
@@ -179,8 +179,7 @@ fn run_task(args: &[String], runners: &Vec<Box<dyn Runner>>) -> Result<()> {
     };
 
     if let Some(runner) = selected_runner {
-        runner.run(&args[0], &args[1..])?;
-        return Ok(());
+        return runner.run(&args[0], &args[1..]);
     }
 
     bail!("Unknown task '{}'", args[0]);
@@ -217,11 +216,6 @@ fn print_anyhow_error(e: &anyhow::Error) {
     }
 }
 
-fn main() {
-    let res = rt();
-
-    if let Err(e) = res {
-        print_anyhow_error(&e);
-        process::exit(1)
-    }
+fn main() -> Result<()> {
+    process::exit(rt()?);
 }

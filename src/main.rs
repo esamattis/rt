@@ -7,6 +7,7 @@ use std::{
 mod composer;
 mod envfile;
 mod jakefile;
+mod moon;
 mod npm;
 mod runner;
 mod scripts;
@@ -16,6 +17,7 @@ use anyhow::{bail, Context, Result};
 use composer::ComposerRunner;
 use envfile::EnvFile;
 use jakefile::JakeRunner;
+use moon::MoonRunner;
 use npm::NpmRunner;
 use runner::Runner;
 use scripts::ScriptsRunner;
@@ -62,12 +64,14 @@ fn rt() -> Result<i32> {
             "package.json" => runners.push(Box::new(NpmRunner::new())),
             "jakefile" => runners.push(Box::new(JakeRunner::new())),
             "composer.json" => runners.push(Box::new(ComposerRunner::new())),
+            "moon.yml" => runners.push(Box::new(MoonRunner::new())),
             "scripts" => runners.push(Box::new(ScriptsRunner::new(runner_arg.to_string()))),
             _ => eprintln!("Unknown runner configured: '{}'", runner),
         }
     }
 
     if runners.len() == 0 {
+        runners.push(Box::new(MoonRunner::new()));
         runners.push(Box::new(NpmRunner::new()));
         runners.push(Box::new(JakeRunner::new()));
         runners.push(Box::new(ComposerRunner::new()));

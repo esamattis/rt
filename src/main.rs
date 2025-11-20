@@ -1,6 +1,7 @@
 use std::{
     env,
     io::{self},
+    path::{Path, PathBuf},
     process,
 };
 
@@ -95,6 +96,14 @@ fn rt() -> Result<i32> {
     }
 
     if arg == "--zsh-complete" {
+        // Try to find runner files in parent directories
+        let original_dir = env::current_dir().context("Failed to get current directory")?;
+        let found_dir = find_runner_files(&original_dir, &runners);
+
+        if let Some(dir) = found_dir {
+            env::set_current_dir(&dir).context("Failed to change directory")?;
+        }
+
         for runner in runners.iter_mut() {
             // Silence any loading errors intentionally. We do not want to see
             // any errors when autocompleting
@@ -118,6 +127,14 @@ fn rt() -> Result<i32> {
         }
 
         return Ok(0);
+    }
+
+    // Try to find runner files in parent directories for task execution/listing
+    let original_dir = env::current_dir().context("Failed to get current directory")?;
+    let found_dir = find_runner_files(&original_dir, &runners);
+
+    if let Some(dir) = found_dir {
+        env::set_current_dir(&dir).context("Failed to change directory")?;
     }
 
     let mut errors: Vec<anyhow::Error> = Vec::new();
@@ -218,6 +235,58 @@ fn print_anyhow_error(e: &anyhow::Error) {
         eprintln!("Caused by: {}", err);
         source = err.source();
     }
+}
+
+fn find_runner_files(start_dir: &Path, runners: &Vec<Box<dyn Runner>>) -> Option<PathBuf> {
+    let mut current = start_dir.to_path_buf();
+
+    loop {
+        // Check if .git exists - stop traversing if found
+        if current.join(".git").exists() {
+            // Check if any runner file exists in this directory
+            if has_runner_files(&current, runners) {
+                return Some(current);
+            }
+            // .git found but no runner files, stop searching
+            return None;
+        }
+
+        // Check if any runner file exists in current directory
+        if has_runner_files(&current, runners) {
+            return Some(current);
+        }
+
+        // Try to move to parent directory
+        match current.parent() {
+            Some(parent) => current = parent.to_path_buf(),
+            None => return None, // Reached root without finding anything
+        }
+    }
+}
+
+fn has_runner_files(dir: &Path, runners: &Vec<Box<dyn Runner>>) -> bool {
+    for runner in runners {
+        let runner_name = runner.name();
+
+        // Extract the file name from runner name
+        let file_to_check = if runner_name.starts_with("scripts:") {
+            // For scripts runners, extract the directory path
+            let dir_path = runner_name.strip_prefix("scripts:").unwrap_or("");
+            if !dir_path.is_empty() {
+                dir.join(dir_path).exists()
+            } else {
+                false
+            }
+        } else {
+            // For file-based runners (package.json, moon.yml, composer.json, jakefile)
+            dir.join(runner_name).exists()
+        };
+
+        if file_to_check {
+            return true;
+        }
+    }
+    false
 }
 
 fn main() -> Result<()> {
